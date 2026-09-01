@@ -1,66 +1,49 @@
 # Evolution Passkey Helper
 
-Extensão de navegador que conclui o pareamento por **chave de acesso (passkey)**
-do WhatsApp Web para o Evolution GO.
+Browser extension that completes **passkey** pairing for WhatsApp Web with Evolution GO.
 
-Desde que o WhatsApp passou a exigir passkey ao vincular um novo dispositivo, o
-QR Code sozinho não basta em algumas contas: é preciso executar uma cerimônia
-WebAuthn (`navigator.credentials.get`), e o navegador só permite isso quando o
-código roda no origin da _relying party_ — `whatsapp.com`. Esta extensão roda
-**somente** em `web.whatsapp.com` e serve apenas como "palco" com o origin
-correto para a biometria/PIN. Ela **não** interage com o login do WhatsApp Web e
-**não** coleta nem envia dados para terceiros.
+Since WhatsApp began requiring passkeys when linking new devices, a QR Code alone is not sufficient for some accounts: a WebAuthn ceremony (`navigator.credentials.get`) must be executed, and the browser only permits this when the code runs on the relying party origin — `whatsapp.com`. This extension runs **only** on `web.whatsapp.com` and acts solely as a secure origin host for the biometric/PIN ceremony. It **does not** interfere with WhatsApp Web login and **does not** collect or transmit data to third parties.
 
-## Como funciona
+## How It Works
 
-1. Você escaneia o QR normalmente no Evolution (manager). Se a conta exigir
-   passkey, o painel de conexão mostra o botão **"Abrir WhatsApp Web"**.
-2. Esse botão abre `https://web.whatsapp.com/#wapk=<payload>`, onde `payload` é
-   um base64url de `{ "t": "<token da instância>", "b": "<url base da API>" }`.
-3. O content script lê esse payload, consulta o status da cerimônia na API,
-   executa a cerimônia WebAuthn no origin `whatsapp.com` e envia a assinatura de
-   volta para o Evolution.
-4. Se o pareamento exigir confirmação manual do código, o painel mostra o código
-   e um botão **"Confirmar código"**. Na maioria dos casos (QR escaneado antes),
-   o Evolution confirma automaticamente e você só precisa voltar ao manager.
+1. Scan the QR code as usual in Evolution Manager. If the account requires a passkey, the connection modal displays the button **"Open WhatsApp Web"**.
+2. This button opens `https://web.whatsapp.com/#wapk=<payload>`, where `payload` is a base64url JSON of `{ "t": "<instance token>", "b": "<API base URL>" }`.
+3. The content script reads this payload, polls the ceremony status from the API, executes the WebAuthn ceremony on `whatsapp.com`, and sends the signature assertion back to Evolution.
+4. If pairing requires manual confirmation, the panel shows the code and a **"Confirm code"** button. In most cases (QR scanned beforehand), Evolution confirms automatically and you only need to return to the manager.
 
-Nenhuma `host_permission` é necessária: as chamadas partem do origin
-`web.whatsapp.com` e o backend do Evolution já libera CORS para essa origem.
+No `host_permission` is required: requests originate from the `web.whatsapp.com` origin and the Evolution backend allows CORS for that origin.
 
-## Endpoints usados (Evolution GO)
+## Endpoints Used (Evolution GO)
 
-- `GET  {base}/passkey-ceremony/{token}` — status/desafio da cerimônia
-- `POST {base}/passkey-ceremony/{token}/response` — envia a assertion WebAuthn
-- `POST {base}/passkey-ceremony/{token}/confirm` — confirma o código (quando aplicável)
+- `GET  {base}/passkey-ceremony/{token}` — ceremony status and challenge
+- `POST {base}/passkey-ceremony/{token}/response` — sends the WebAuthn assertion
+- `POST {base}/passkey-ceremony/{token}/confirm` — confirms the code (when applicable)
 
-Onde `base` é a URL da sua API Evolution e `token` é o token da instância.
+Where `base` is your Evolution API URL and `token` is the instance token.
 
-## Instalar no Google Chrome
+## Installation in Google Chrome
 
-1. Baixe/descompacte esta pasta (a que contém `manifest.json`).
-2. Abra `chrome://extensions`.
-3. Ative o **Modo do desenvolvedor** (canto superior direito).
-4. Clique em **Carregar sem compactação**.
-5. Selecione esta pasta.
-6. Volte ao Evolution e clique em **"Abrir WhatsApp Web"**.
+1. Download / unzip this folder (containing `manifest.json`).
+2. Open `chrome://extensions`.
+3. Enable **Developer mode** (top right switch).
+4. Click **Load unpacked**.
+5. Select this folder.
+6. Return to Evolution Manager and click **"Open WhatsApp Web"**.
 
-## Instalar no Microsoft Edge
+## Installation in Microsoft Edge
 
-1. Baixe/descompacte esta pasta (a que contém `manifest.json`).
-2. Abra `edge://extensions`.
-3. Ative o **Modo de desenvolvedor** (canto inferior esquerdo).
-4. Clique em **Carregar sem pacote**.
-5. Selecione esta pasta.
-6. Volte ao Evolution e clique em **"Abrir WhatsApp Web"**.
+1. Download / unzip this folder (containing `manifest.json`).
+2. Open `edge://extensions`.
+3. Enable **Developer mode** (bottom left switch).
+4. Click **Load unpacked**.
+5. Select this folder.
+6. Return to Evolution Manager and click **"Open WhatsApp Web"**.
 
-## Dicas
+## Tips
 
-- Use o navegador logado na mesma conta (Google/iCloud) onde a passkey do
-  WhatsApp está salva, ou tenha o celular por perto para o fluxo de biometria.
-- A cerimônia tem validade curta. Se expirar, gere um novo QR no Evolution.
+- Use the browser logged into the same account (Google/iCloud) where your WhatsApp passkey is saved, or have your phone nearby for biometric confirmation.
+- The ceremony challenge has a short expiration window. If it expires, generate a new QR code in Evolution.
 
 ## Whitelabel
 
-A extensão é genérica: nada de URL ou token fica embutido no código — tudo vem
-no `payload` da URL. Para personalizar nome/ícone, edite o `manifest.json` e o
-título/descrição do painel em `content.js`.
+The extension is generic: no API URL or token is hardcoded in the codebase — everything is supplied dynamically via the URL payload. To customize the name/icon, edit `manifest.json` and panel details in `content.js`.

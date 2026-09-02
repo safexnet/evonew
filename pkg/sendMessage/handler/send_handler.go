@@ -25,6 +25,7 @@ type SendHandler interface {
 	SendCarousel(ctx *gin.Context)
 	SendStatusText(ctx *gin.Context)
 	SendStatusMedia(ctx *gin.Context)
+	SendExcel(ctx *gin.Context)
 }
 
 type sendHandler struct {
@@ -836,4 +837,63 @@ func NewSendHandler(
 	return &sendHandler{
 		sendMessageService: sendMessageService,
 	}
+}
+
+// Send Excel / CSV bulk messages
+// @Summary Send bulk WhatsApp messages from an uploaded Excel/CSV file
+// @Description Upload an Excel (.xlsx, .xls) or CSV (.csv) file with customer data to send bulk messages
+// @Tags Send Message
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Spreadsheet File (.xlsx, .csv)"
+// @Param text formData string false "Message template with placeholders (e.g. Hello {{Name}})"
+// @Param delay formData int false "Delay between messages in milliseconds (default: 2000)"
+// @Success 200 {object} send_model.BulkSendSummary
+// @Failure 400 {object} gin.H
+// @Failure 500 {object} gin.H
+// @Router /send/excel [post]
+func (s *sendHandler) SendExcel(ctx *gin.Context) {
+	getInstance := ctx.MustGet("instance")
+
+	instance, ok := getInstance.(*instance_model.Instance)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "instance not found"})
+		return
+	}
+
+	fileHeader, err := ctx.FormFile("file")
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "missing 'file' in multipart form data"})
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to open uploaded file"})
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file bytes"})
+		return
+	}
+
+	templateText := ctx.PostForm("text")
+	delayStr := ctx.PostForm("delay")
+	var delay int32 = 2000
+	if delayStr != "" {
+		if d, err := strconv.Atoi(delayStr); err == nil && d > 0 {
+			delay = int32(d)
+		}
+	}
+
+	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, delay, instance)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, summary)
 }

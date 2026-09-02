@@ -124,6 +124,7 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 			routes.POST("/carousel", r.jidValidationMiddleware.ValidateNumberFieldWithFormatJid(), r.sendHandler.SendCarousel)
 			routes.POST("/status/text", r.sendHandler.SendStatusText)
 			routes.POST("/status/media", r.sendHandler.SendStatusMedia)
+			routes.POST("/excel", r.sendHandler.SendExcel)
 		}
 	}
 	routes = eng.Group("/user")

@@ -14,6 +14,8 @@ RUN go mod download
 # Copiar o restante do código
 COPY . .
 
+RUN go mod tidy
+
 ARG VERSION=dev
 RUN CGO_ENABLED=1 go build -ldflags "-X main.version=${VERSION}" -o server ./cmd/evolution-go
 

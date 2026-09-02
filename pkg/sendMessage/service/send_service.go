@@ -5,6 +5,7 @@ import (
 	"context"
 	crypto_rand "crypto/rand"
 	"encoding/base64"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,9 +25,11 @@ import (
 	config "github.com/evolution-foundation/evolution-go/pkg/config"
 	instance_model "github.com/evolution-foundation/evolution-go/pkg/instance/model"
 	logger_wrapper "github.com/evolution-foundation/evolution-go/pkg/logger"
+	send_model "github.com/evolution-foundation/evolution-go/pkg/sendMessage/model"
 	"github.com/evolution-foundation/evolution-go/pkg/utils"
 	whatsmeow_service "github.com/evolution-foundation/evolution-go/pkg/whatsmeow/service"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/xuri/excelize/v2"
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -50,6 +53,7 @@ type SendService interface {
 	SendStatusText(data *StatusTextStruct, instance *instance_model.Instance) (*MessageSendStruct, error)
 	SendStatusMediaUrl(data *StatusMediaStruct, instance *instance_model.Instance) (*MessageSendStruct, error)
 	SendStatusMediaFile(data *StatusMediaStruct, fileData []byte, instance *instance_model.Instance) (*MessageSendStruct, error)
+	SendBulkExcel(fileData []byte, fileName string, templateText string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error)
 }
 
 type sendService struct {
@@ -3377,4 +3381,164 @@ func NewSendService(
 		config:           config,
 		loggerWrapper:    loggerWrapper,
 	}
+}
+
+func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
+	if len(fileData) == 0 {
+		return nil, errors.New("empty file data")
+	}
+
+	var rows [][]string
+	lowerName := strings.ToLower(fileName)
+
+	if strings.HasSuffix(lowerName, ".csv") {
+		reader := csv.NewReader(bytes.NewReader(fileData))
+		records, err := reader.ReadAll()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse CSV file: %w", err)
+		}
+		rows = records
+	} else {
+		f, err := excelize.OpenReader(bytes.NewReader(fileData))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse Excel file: %w", err)
+		}
+		defer f.Close()
+
+		sheetName := f.GetSheetName(0)
+		if sheetName == "" {
+			return nil, errors.New("excel file contains no sheets")
+		}
+
+		sheetRows, err := f.GetRows(sheetName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read sheet rows: %w", err)
+		}
+		rows = sheetRows
+	}
+
+	if len(rows) < 2 {
+		return nil, errors.New("spreadsheet must contain at least a header row and one data row")
+	}
+
+	header := rows[0]
+	numberColIdx := -1
+	nameColIdx := -1
+
+	for idx, col := range header {
+		cleanCol := strings.ToLower(strings.TrimSpace(col))
+		if numberColIdx == -1 && (cleanCol == "number" || cleanCol == "phone" || cleanCol == "mobile" || cleanCol == "cell" || cleanCol == "telefone" || cleanCol == "numero" || cleanCol == "contato" || cleanCol == "whatsapp") {
+			numberColIdx = idx
+		}
+		if nameColIdx == -1 && (cleanCol == "name" || cleanCol == "nome" || cleanCol == "customer" || cleanCol == "cliente") {
+			nameColIdx = idx
+		}
+	}
+
+	if numberColIdx == -1 {
+		for rIdx := 1; rIdx < len(rows); rIdx++ {
+			for cIdx, val := range rows[rIdx] {
+				cleanVal := regexp.MustCompile(`[^\d]`).ReplaceAllString(val, "")
+				if len(cleanVal) >= 8 {
+					numberColIdx = cIdx
+					break
+				}
+			}
+			if numberColIdx != -1 {
+				break
+			}
+		}
+	}
+
+	if numberColIdx == -1 {
+		return nil, errors.New("could not find a phone number column in spreadsheet. Please label header column as 'Number' or 'Phone'")
+	}
+
+	if delay <= 0 {
+		delay = 2000
+	}
+
+	summary := &send_model.BulkSendSummary{
+		Status:  "completed",
+		Results: []send_model.BulkSendRowResult{},
+	}
+
+	for rowIdx := 1; rowIdx < len(rows); rowIdx++ {
+		row := rows[rowIdx]
+		if len(row) <= numberColIdx {
+			continue
+		}
+
+		rawNumber := strings.TrimSpace(row[numberColIdx])
+		if rawNumber == "" {
+			continue
+		}
+
+		cleanNumber := regexp.MustCompile(`[^\d]`).ReplaceAllString(rawNumber, "")
+		if len(cleanNumber) < 8 {
+			summary.Results = append(summary.Results, send_model.BulkSendRowResult{
+				Row:    rowIdx + 1,
+				Number: rawNumber,
+				Status: "failed",
+				Error:  "invalid phone number",
+			})
+			summary.Failed++
+			summary.Total++
+			continue
+		}
+
+		nameVal := ""
+		if nameColIdx != -1 && len(row) > nameColIdx {
+			nameVal = strings.TrimSpace(row[nameColIdx])
+		}
+
+		formattedMessage := templateText
+		if formattedMessage == "" {
+			formattedMessage = "Hello"
+		}
+
+		for colIdx, headerName := range header {
+			if len(row) > colIdx {
+				val := strings.TrimSpace(row[colIdx])
+				cleanHeader := strings.TrimSpace(headerName)
+				formattedMessage = strings.ReplaceAll(formattedMessage, "{{"+cleanHeader+"}}", val)
+				formattedMessage = strings.ReplaceAll(formattedMessage, "{{"+strings.ToLower(cleanHeader)+"}}", val)
+				formattedMessage = strings.ReplaceAll(formattedMessage, "{"+cleanHeader+"}", val)
+				formattedMessage = strings.ReplaceAll(formattedMessage, "{"+strings.ToLower(cleanHeader)+"}", val)
+			}
+		}
+
+		textData := &TextStruct{
+			Number: cleanNumber,
+			Text:   formattedMessage,
+			Delay:  0,
+		}
+
+		_, err := s.SendText(textData, instance)
+		summary.Total++
+		if err != nil {
+			summary.Failed++
+			summary.Results = append(summary.Results, send_model.BulkSendRowResult{
+				Row:    rowIdx + 1,
+				Number: cleanNumber,
+				Name:   nameVal,
+				Status: "failed",
+				Error:  err.Error(),
+			})
+		} else {
+			summary.Sent++
+			summary.Results = append(summary.Results, send_model.BulkSendRowResult{
+				Row:    rowIdx + 1,
+				Number: cleanNumber,
+				Name:   nameVal,
+				Status: "sent",
+			})
+		}
+
+		if rowIdx < len(rows)-1 {
+			time.Sleep(time.Duration(delay) * time.Millisecond)
+		}
+	}
+
+	return summary, nil
 }

@@ -154,10 +154,24 @@ http://localhost:8080/swagger/index.html
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/instance/create` | Create WhatsApp instance |
-| `GET` | `/instance/{name}/qrcode` | Get QR code for pairing |
-| `POST` | `/message/sendText` | Send text message |
-| `POST` | `/message/sendMedia` | Send media message |
-| `GET` | `/instance/{name}/status` | Get instance status |
+| `GET` | `/instance/qr` | Get QR code for pairing |
+| `POST` | `/send/text` | Send text message |
+| `POST` | `/send/media` | Send media message |
+| `POST` | `/send/excel` | **Upload Excel/CSV for bulk personalized messaging** |
+| `GET` | `/instance/status` | Get instance status |
+
+### Bulk Excel Messaging Endpoint (`POST /send/excel`)
+
+Upload an Excel (`.xlsx`, `.xls`) or CSV (`.csv`) file with `Name` and `Number` columns to send personalized bulk messages.
+
+**Example cURL:**
+```bash
+curl -X POST http://localhost:4000/send/excel \
+  -H "apikey: a1b2c3d4e5f6" \
+  -F "file=@customers.xlsx" \
+  -F "text=Hello {{Name}}, welcome to Evolution API!" \
+  -F "delay=2000"
+```
 | `DELETE` | `/instance/{name}` | Delete instance |
 
 ---

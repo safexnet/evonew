@@ -847,9 +847,29 @@ func NewSendHandler(
 // @Produce json
 // @Param file formData file true "Spreadsheet File (.xlsx, .csv)"
 // @Param text formData string false "Message template with placeholders (e.g. Hello {{Name}})"
+// SendExcel handles POST /send/excel requests to send bulk messages from an uploaded spreadsheet.
+//
+// WORKFLOW & EXISTING STRUCTURE:
+// 1. Context Extraction: Retrieve the authenticated WhatsApp instance attached to the Gin context by Auth middleware.
+// 2. Spreadsheet Extraction: Parse the mandatory 'file' field (.xlsx, .xls, .csv) from multipart form data.
+// 3. Media Extraction (Optional): Check for optional 'media' file upload (e.g. image/jpg, video, doc) or 'mediaUrl'.
+// 4. Parameter Parsing: Parse optional rate-limiting parameters 'delay' (ms), 'batchSize', and 'batchDelay' (seconds).
+// 5. Service Invocation: Delegate heavy processing (parsing rows, replacing {{Placeholders}}, batch delays, and sending messages via Whatsmeow) to s.sendMessageService.SendBulkExcel.
+// 6. Response: Return a JSON summary object with counts of total, successful, and failed dispatches.
+//
+// @Summary Send bulk WhatsApp messages from an uploaded Excel/CSV file
+// @Description Upload an Excel (.xlsx, .xls) or CSV (.csv) file with customer data to send bulk messages
+// @Tags Send Message
+// @Accept multipart/form-data
+// @Produce application/json
+// @Param apikey header string true "API Key" default(a1b2c3d4e5f6)
+// @Param file formData file true "Spreadsheet File (.xlsx, .csv)"
+// @Param text formData string false "Message template with placeholders (e.g. Hello {{Name}})"
 // @Param media formData file false "Media file upload (Image / Video / Document / Audio)"
 // @Param mediaUrl formData string false "Media URL link (Image / Video / Document / Audio)"
 // @Param delay formData int false "Delay between messages in milliseconds (default: 2000)"
+// @Param batchSize formData int false "Messages per batch limit (default: 20)"
+// @Param batchDelay formData int false "Pause duration between batches in seconds (default: 30)"
 // @Success 200 {object} send_model.BulkSendSummary
 // @Failure 400 {object} gin.H
 // @Failure 500 {object} gin.H
@@ -863,6 +883,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		return
 	}
 
+	// 1. Extract required spreadsheet file (.xlsx, .xls, .csv)
 	fileHeader, err := ctx.FormFile("file")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "missing 'file' (spreadsheet) in multipart form data"})
@@ -885,6 +906,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 	templateText := ctx.PostForm("text")
 	mediaUrl := ctx.PostForm("mediaUrl")
 
+	// 2. Extract optional media file upload (image, video, document, audio)
 	var mediaBytes []byte
 	var mediaFileName string
 	mediaHeader, errMedia := ctx.FormFile("media")
@@ -900,11 +922,13 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
+	// Validate that at least text template, media file, or media URL is present
 	if strings.TrimSpace(templateText) == "" && len(mediaBytes) == 0 && strings.TrimSpace(mediaUrl) == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "at least one of 'text', 'media' (file upload), or 'mediaUrl' must be provided"})
 		return
 	}
 
+	// 3. Parse optional delay parameter (default 2000 ms)
 	delayStr := ctx.PostForm("delay")
 	var delay int32 = 2000
 	if delayStr != "" {
@@ -913,6 +937,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
+	// 4. Parse optional batchSize parameter (default 20 messages per batch)
 	batchSizeStr := ctx.PostForm("batchSize")
 	var batchSize int32 = 20
 	if batchSizeStr != "" {
@@ -921,6 +946,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
+	// 5. Parse optional batchDelay parameter (default 30 seconds pause between batches)
 	batchDelayStr := ctx.PostForm("batchDelay")
 	var batchDelay int32 = 30
 	if batchDelayStr != "" {
@@ -929,6 +955,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
+	// 6. Invoke SendBulkExcel service logic
 	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, mediaUrl, delay, batchSize, batchDelay, instance)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

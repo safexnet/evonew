@@ -50,7 +50,7 @@ func (h *accountHandler) Register(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "Account created successfully! An email containing your API key has been sent. Please verify your account before logging in.",
+		"message": "An API key has been sent if this email is valid. Please verify your account using that key.",
 		"data":    acc,
 	})
 }

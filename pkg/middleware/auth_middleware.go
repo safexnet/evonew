@@ -3,6 +3,7 @@ package auth_middleware
 import (
 	"net/http"
 
+	account_service "github.com/evolution-foundation/evolution-go/pkg/account/service"
 	"github.com/evolution-foundation/evolution-go/pkg/config"
 	instance_service "github.com/evolution-foundation/evolution-go/pkg/instance/service"
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,7 @@ type Middleware interface {
 type middleware struct {
 	config          *config.Config
 	instanceService instance_service.InstanceService
+	accountService  account_service.AccountService
 }
 
 func (m middleware) Auth(ctx *gin.Context) {
@@ -37,12 +39,25 @@ func (m middleware) Auth(ctx *gin.Context) {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "no whatsapp instance found. Please create an instance first via /instance/create or in the Manager portal"})
 			return
 		}
+
+		if m.accountService != nil {
+			acc, errAcc := m.accountService.GetByApiKey(token)
+			if errAcc == nil && acc != nil {
+				ctx.Set("account", acc)
+				instances, errAll := m.instanceService.GetAll()
+				if errAll == nil && len(instances) > 0 {
+					ctx.Set("instance", instances[0])
+				}
+				ctx.Next()
+				return
+			}
+		}
+
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "not authorized"})
 		return
 	}
 
 	ctx.Set("instance", instance)
-
 	ctx.Next()
 }
 
@@ -54,6 +69,14 @@ func (m middleware) AuthAdmin(ctx *gin.Context) {
 	}
 
 	if token != m.config.GlobalApiKey {
+		if m.accountService != nil {
+			acc, errAcc := m.accountService.GetByApiKey(token)
+			if errAcc == nil && acc != nil {
+				ctx.Set("account", acc)
+				ctx.Next()
+				return
+			}
+		}
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "not authorized"})
 		return
 	}
@@ -61,6 +84,6 @@ func (m middleware) AuthAdmin(ctx *gin.Context) {
 	ctx.Next()
 }
 
-func NewMiddleware(config *config.Config, instanceService instance_service.InstanceService) *middleware {
-	return &middleware{config: config, instanceService: instanceService}
+func NewMiddleware(config *config.Config, instanceService instance_service.InstanceService, accountService account_service.AccountService) *middleware {
+	return &middleware{config: config, instanceService: instanceService, accountService: accountService}
 }

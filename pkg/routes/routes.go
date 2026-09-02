@@ -8,6 +8,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "github.com/evolution-foundation/evolution-go/docs"
+	account_handler "github.com/evolution-foundation/evolution-go/pkg/account/handler"
 	call_handler "github.com/evolution-foundation/evolution-go/pkg/call/handler"
 	chat_handler "github.com/evolution-foundation/evolution-go/pkg/chat/handler"
 	community_handler "github.com/evolution-foundation/evolution-go/pkg/community/handler"
@@ -27,6 +28,7 @@ type Routes struct {
 	authMiddleware          auth_middleware.Middleware
 	jidValidationMiddleware *auth_middleware.JIDValidationMiddleware
 	instanceHandler         instance_handler.InstanceHandler
+	accountHandler          account_handler.AccountHandler
 	userHandler             user_handler.UserHandler
 	sendHandler             send_handler.SendHandler
 	messageHandler          message_handler.MessageHandler
@@ -76,6 +78,18 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 	})
 
 	eng.GET("/server/ok", r.serverHandler.ServerOk)
+
+	accountRoutes := eng.Group("/account")
+	{
+		accountRoutes.POST("/register", r.accountHandler.Register)
+		accountRoutes.POST("/login", r.accountHandler.Login)
+	}
+
+	authenticatedAccountRoutes := eng.Group("/account")
+	{
+		authenticatedAccountRoutes.Use(r.authMiddleware.Auth)
+		authenticatedAccountRoutes.GET("/me", r.accountHandler.Me)
+	}
 
 	routes := eng.Group("/instance")
 	{
@@ -251,6 +265,7 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 func NewRouter(
 	authMiddleware auth_middleware.Middleware,
 	instanceHandler instance_handler.InstanceHandler,
+	accountHandler account_handler.AccountHandler,
 	userHandler user_handler.UserHandler,
 	sendHandler send_handler.SendHandler,
 	messageHandler message_handler.MessageHandler,
@@ -267,6 +282,7 @@ func NewRouter(
 		authMiddleware:          authMiddleware,
 		jidValidationMiddleware: auth_middleware.NewJIDValidationMiddleware(),
 		instanceHandler:         instanceHandler,
+		accountHandler:          accountHandler,
 		userHandler:             userHandler,
 		sendHandler:             sendHandler,
 		messageHandler:          messageHandler,

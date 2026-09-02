@@ -18,6 +18,75 @@ const docTemplate = `{
     "host": "localhost:4000",
     "basePath": "/",
     "paths": {
+        "/account/register": {
+            "post": {
+                "description": "Register a new user account, save to DB, generate an API key, and send it via email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Register a new account",
+                "parameters": [
+                    {
+                        "description": "Registration payload (email, name, password)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": { "type": "string" },
+                                "name": { "type": "string" },
+                                "password": { "type": "string" }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": { "description": "Account created successfully" },
+                    "400": { "description": "Error on validation" }
+                }
+            }
+        },
+        "/account/login": {
+            "post": {
+                "description": "Log in to an existing account and retrieve API key",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Log in to an account",
+                "parameters": [
+                    {
+                        "description": "Login payload (email, password)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": { "type": "string" },
+                                "password": { "type": "string" }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Login successful" },
+                    "401": { "description": "Unauthorized" }
+                }
+            }
+        },
         "/call/reject": {
             "post": {
                 "description": "Reject call",

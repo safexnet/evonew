@@ -3565,21 +3565,63 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 			}
 			_, sendErr = s.SendMediaFile(mediaData, mediaBytes, instance)
 		} else if hasMediaUrl {
-			mediaData := &MediaStruct{
-				Number:   cleanNumber,
-				Url:      mediaUrl,
-				Type:     detectedMediaType,
-				Caption:  formattedMessage,
-				Filename: mediaFileName,
+			if isMediaFileType(mediaUrl) {
+				mediaData := &MediaStruct{
+					Number:   cleanNumber,
+					Url:      mediaUrl,
+					Type:     detectedMediaType,
+					Caption:  formattedMessage,
+					Filename: mediaFileName,
+				}
+				_, sendErr = s.SendMediaUrl(mediaData, instance)
+			} else {
+				linkData := &LinkStruct{
+					Number: cleanNumber,
+					Text:   formattedMessage,
+					Url:    mediaUrl,
+				}
+				if strings.TrimSpace(linkData.Text) == "" {
+					linkData.Text = mediaUrl
+				}
+				_, sendErr = s.SendLink(linkData, instance)
+				if sendErr != nil {
+					textContent := mediaUrl
+					if formattedMessage != "" {
+						textContent = mediaUrl + "\n" + formattedMessage
+					}
+					textData := &TextStruct{
+						Number: cleanNumber,
+						Text:   textContent,
+						Delay:  0,
+					}
+					_, sendErr = s.SendText(textData, instance)
+				}
 			}
-			_, sendErr = s.SendMediaUrl(mediaData, instance)
 		} else {
-			textData := &TextStruct{
-				Number: cleanNumber,
-				Text:   formattedMessage,
-				Delay:  0,
+			detectedUrl := findURL(formattedMessage)
+			if detectedUrl != "" {
+				linkData := &LinkStruct{
+					Number: cleanNumber,
+					Text:   formattedMessage,
+					Url:    detectedUrl,
+				}
+				_, sendErr = s.SendLink(linkData, instance)
+				if sendErr != nil {
+					textData := &TextStruct{
+						Number: cleanNumber,
+						Text:   formattedMessage,
+						Delay:  0,
+					}
+					_, sendErr = s.SendText(textData, instance)
+				}
+			} else {
+				textData := &TextStruct{
+					Number: cleanNumber,
+					Text:   formattedMessage,
+					Delay:  0,
+				}
+				_, sendErr = s.SendText(textData, instance)
 			}
-			_, sendErr = s.SendText(textData, instance)
 		}
 
 		summary.Total++
@@ -3613,4 +3655,15 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 	}
 
 	return summary, nil
+}
+
+func isMediaFileType(mediaUrl string) bool {
+	lowerUrl := strings.ToLower(strings.TrimSpace(mediaUrl))
+	exts := []string{".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".mkv", ".mov", ".avi", ".mp3", ".ogg", ".wav", ".pdf", ".docx", ".xlsx", ".zip", ".tar", ".csv"}
+	for _, ext := range exts {
+		if strings.HasSuffix(lowerUrl, ext) || strings.Contains(lowerUrl, ext+"?") {
+			return true
+		}
+	}
+	return false
 }

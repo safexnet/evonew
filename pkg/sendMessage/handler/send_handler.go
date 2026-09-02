@@ -866,8 +866,9 @@ func NewSendHandler(
 // @Param file formData file true "Spreadsheet File (.xlsx, .csv)"
 // @Param text formData string false "Message template with placeholders (e.g. Hello {{Name}})"
 // @Param media formData file false "Media file upload (Image / Video / Document / Audio)"
-// @Param mediaUrl formData string false "Media URL link (Image / Video / Document / Audio)"
 // @Param delay formData int false "Delay between messages in milliseconds (default: 2000)"
+// @Param batchSize formData int false "Messages per batch limit (default: 20)"
+// @Param batchDelay formData int false "Pause duration between batches in seconds (default: 30)"
 // @Param batchSize formData int false "Messages per batch limit (default: 20)"
 // @Param batchDelay formData int false "Pause duration between batches in seconds (default: 30)"
 // @Success 200 {object} send_model.BulkSendSummary
@@ -904,7 +905,6 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 	}
 
 	templateText := ctx.PostForm("text")
-	mediaUrl := ctx.PostForm("mediaUrl")
 
 	// 2. Extract optional media file upload (image, video, document, audio)
 	var mediaBytes []byte

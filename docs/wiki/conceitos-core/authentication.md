@@ -21,6 +21,7 @@ O Evolution GO usa **chaves de acesso** (API Keys) para proteger sua API. Pense 
 ### Como Funciona
 
 Imagine um prédio com dois tipos de chave:
+
 - **Chave Master (Admin)**: Abre todas as portas, permite criar/deletar salas
 - **Chave Individual (Instância)**: Abre apenas uma sala específica
 
@@ -37,18 +38,21 @@ Imagine um prédio com dois tipos de chave:
 **O que é**: A chave mestre do sistema. Quem tem essa chave controla tudo.
 
 **Para que serve**:
+
 - Criar novas instâncias do WhatsApp
 - Deletar instâncias existentes
 - Ver todas as instâncias do sistema
 - Gerenciar configurações globais
 
 **Como usar**:
+
 ```
 Envie no header da requisição:
 apikey: sua-chave-global-aqui
 ```
 
 **Exemplo prático**:
+
 ```bash
 # Criar uma instância nova
 POST /instance/create
@@ -60,18 +64,21 @@ Header: apikey: minha-chave-master-123
 **O que é**: A chave individual de cada WhatsApp conectado.
 
 **Para que serve**:
+
 - Enviar mensagens
 - Criar grupos
 - Gerenciar contatos
 - Todas as operações do WhatsApp dessa instância
 
 **Como usar**:
+
 ```
 Envie no header da requisição:
 apikey: token-da-sua-instancia
 ```
 
 **Exemplo prático**:
+
 ```bash
 # Enviar uma mensagem
 POST /send/text
@@ -93,17 +100,20 @@ GLOBAL_API_KEY=minha-chave-super-secreta
 ### Gerando uma Chave Segura
 
 **Recomendado** (Linux/Mac):
+
 ```bash
 # Gera uma chave aleatória forte
 openssl rand -base64 32
 ```
 
 Resultado exemplo:
+
 ```
 dGhpc2lzYXNlY3VyZWtleXRoYXRpc3Zlcnlsb25nYW5kc2VjdXJl
 ```
 
 **Não use chaves óbvias**:
+
 - ❌ `123456`
 - ❌ `admin`
 - ❌ `minha-senha`
@@ -111,6 +121,7 @@ dGhpc2lzYXNlY3VyZWtleXRoYXRpc3Zlcnlsb25nYW5kc2VjdXJl
 ### Onde é Usado
 
 **Endpoints que precisam da API Key Global**:
+
 - Criar instância: `POST /instance/create`
 - Deletar instância: `DELETE /instance/delete/:id`
 - Listar todas: `GET /instance/all`
@@ -129,6 +140,7 @@ Cada instância do WhatsApp tem seu próprio token único. É como o CPF da inst
 ### Como Obter
 
 **Opção 1: Sistema gera automaticamente**
+
 ```json
 POST /instance/create
 {
@@ -144,6 +156,7 @@ Resposta:
 ```
 
 **Opção 2: Você define o token**
+
 ```json
 POST /instance/create
 {
@@ -159,6 +172,7 @@ POST /instance/create
 **Endpoints que precisam do Token de Instância**:
 
 **Mensagens**:
+
 - Enviar texto: `POST /send/text`
 - Enviar mídia: `POST /send/media`
 - Enviar áudio: `POST /send/audio`
@@ -166,12 +180,14 @@ POST /instance/create
 - Marcar como lida: `POST /message/markread`
 
 **Grupos**:
+
 - Listar grupos: `GET /group/list`
 - Criar grupo: `POST /group/create`
 - Adicionar participante: `POST /group/participant`
 - Sair do grupo: `POST /group/leave`
 
 **Usuários**:
+
 - Ver informações: `POST /user/info`
 - Bloquear: `POST /user/block`
 - Desbloquear: `POST /user/unblock`
@@ -190,6 +206,7 @@ apikey: sua-chave-aqui
 ```
 
 **NÃO use**:
+
 ```
 ❌ Authorization: Bearer sua-chave
 ❌ apikey: Bearer sua-chave
@@ -198,6 +215,7 @@ apikey: sua-chave-aqui
 ### Exemplos Práticos
 
 **1. Criando uma instância (usa API Key Global)**:
+
 ```bash
 curl -X POST http://localhost:4000/instance/create \
   -H "Content-Type: application/json" \
@@ -206,6 +224,7 @@ curl -X POST http://localhost:4000/instance/create \
 ```
 
 **2. Enviando mensagem (usa Token da Instância)**:
+
 ```bash
 curl -X POST http://localhost:4000/send/text \
   -H "Content-Type: application/json" \
@@ -217,17 +236,18 @@ curl -X POST http://localhost:4000/send/text \
 ```
 
 **3. Com JavaScript**:
+
 ```javascript
-fetch('http://localhost:4000/send/text', {
-  method: 'POST',
+fetch("http://localhost:4000/send/text", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'apikey': 'token-vendas'
+    "Content-Type": "application/json",
+    apikey: "token-vendas",
   },
   body: JSON.stringify({
-    number: '5511999999999',
-    text: 'Olá!'
-  })
+    number: "5511999999999",
+    text: "Olá!",
+  }),
 });
 ```
 
@@ -297,12 +317,14 @@ fetch('http://localhost:4000/send/text', {
 ### 1. Protegendo a API Key Global
 
 **❌ NUNCA faça isso**:
+
 - Compartilhar no Slack, email ou WhatsApp
 - Salvar em arquivos públicos no GitHub
 - Usar valores óbvios como "admin" ou "123456"
 - Colocar no código-fonte
 
 **✅ SEMPRE faça isso**:
+
 - Salvar em arquivo `.env` (e adicionar ao `.gitignore`)
 - Usar gerenciadores de secrets (Vault, AWS Secrets)
 - Gerar chaves fortes (32+ caracteres aleatórios)
@@ -311,11 +333,13 @@ fetch('http://localhost:4000/send/text', {
 ### 2. Protegendo Tokens de Instância
 
 **❌ NUNCA faça isso**:
+
 - Colocar tokens na URL (`?token=...`)
 - Salvar tokens em logs
 - Expor tokens em páginas públicas
 
 **✅ SEMPRE faça isso**:
+
 - Enviar apenas via header HTTP
 - Usar HTTPS em produção
 - Guardar em local seguro (variáveis de ambiente)
@@ -336,12 +360,14 @@ Sem HTTPS, suas chaves trafegam em **texto puro** pela internet e podem ser inte
 Se uma chave foi comprometida:
 
 **Para API Key Global**:
+
 1. Gere uma nova chave forte
 2. Atualize a variável `GLOBAL_API_KEY` no servidor
 3. Reinicie a aplicação
 4. Atualize todos os clientes que usam a API
 
 **Para Token de Instância**:
+
 1. Crie uma nova instância com novo token
 2. Migre seus dados
 3. Delete a instância antiga
@@ -351,6 +377,7 @@ Se uma chave foi comprometida:
 ### 5. Monitorando Acessos
 
 **Sinais de problema**:
+
 - Muitas tentativas com chaves inválidas
 - Acessos de IPs desconhecidos
 - Horários estranhos de acesso
@@ -402,11 +429,13 @@ Cada instância é independente e usa seu próprio token!
 ### Erro: "not authorized"
 
 **Possíveis causas**:
+
 1. Header `apikey` está faltando
 2. Valor da chave está errado
 3. Usando chave global onde precisa token de instância (ou vice-versa)
 
 **Como resolver**:
+
 ```bash
 # Verifique se o header está sendo enviado
 curl -v http://localhost:4000/send/text
@@ -426,7 +455,8 @@ curl -H "apikey: sua-chave-global" http://localhost:4000/instance/all
 
 ### Esqueci minha API Key Global
 
-**Solução**: 
+**Solução**:
+
 1. Acesse o servidor
 2. Veja o arquivo `.env`
 3. Procure por `GLOBAL_API_KEY`
@@ -435,12 +465,13 @@ curl -H "apikey: sua-chave-global" http://localhost:4000/instance/all
 
 ## Resumo Rápido
 
-| Tipo | Quando Usar | Exemplo |
-|------|-------------|---------|
-| **API Key Global** | Criar/deletar instâncias | `apikey: minha-chave-master` |
-| **Token Instância** | Enviar mensagens, criar grupos | `apikey: token-vendas-123` |
+| Tipo                | Quando Usar                    | Exemplo                      |
+| ------------------- | ------------------------------ | ---------------------------- |
+| **API Key Global**  | Criar/deletar instâncias       | `apikey: minha-chave-master` |
+| **Token Instância** | Enviar mensagens, criar grupos | `apikey: token-vendas-123`   |
 
 **Lembre-se**:
+
 - 🔑 API Key Global = Chave mestre (admin)
 - 🎫 Token Instância = Chave de uma sala específica
 - 🔒 Sempre use HTTPS em produção

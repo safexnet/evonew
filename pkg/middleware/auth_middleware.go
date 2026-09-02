@@ -27,6 +27,16 @@ func (m middleware) Auth(ctx *gin.Context) {
 
 	instance, err := m.instanceService.GetInstanceByToken(token)
 	if err != nil {
+		if token == m.config.GlobalApiKey {
+			instances, errAll := m.instanceService.GetAll()
+			if errAll == nil && len(instances) > 0 {
+				ctx.Set("instance", instances[0])
+				ctx.Next()
+				return
+			}
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "no whatsapp instance found. Please create an instance first via /instance/create or in the Manager portal"})
+			return
+		}
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "not authorized"})
 		return
 	}

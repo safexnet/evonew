@@ -10,6 +10,7 @@ type AccountRepository interface {
 	GetByEmail(email string) (*account_model.Account, error)
 	GetByApiKey(apiKey string) (*account_model.Account, error)
 	GetByID(id string) (*account_model.Account, error)
+	Update(account *account_model.Account) error
 }
 
 type accountRepository struct {
@@ -49,4 +50,8 @@ func (r *accountRepository) GetByID(id string) (*account_model.Account, error) {
 		return nil, err
 	}
 	return &acc, nil
+}
+
+func (r *accountRepository) Update(account *account_model.Account) error {
+	return r.db.Save(account).Error
 }

@@ -43,6 +43,10 @@ func (m middleware) Auth(ctx *gin.Context) {
 		if m.accountService != nil {
 			acc, errAcc := m.accountService.GetByApiKey(token)
 			if errAcc == nil && acc != nil {
+				if !acc.IsVerified {
+					ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "account not verified. Please verify your account first using /account/verify"})
+					return
+				}
 				ctx.Set("account", acc)
 				instances, errAll := m.instanceService.GetAll()
 				if errAll == nil && len(instances) > 0 {
@@ -72,6 +76,10 @@ func (m middleware) AuthAdmin(ctx *gin.Context) {
 		if m.accountService != nil {
 			acc, errAcc := m.accountService.GetByApiKey(token)
 			if errAcc == nil && acc != nil {
+				if !acc.IsVerified {
+					ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "account not verified. Please verify your account first using /account/verify"})
+					return
+				}
 				ctx.Set("account", acc)
 				ctx.Next()
 				return

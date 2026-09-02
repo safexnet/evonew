@@ -48,6 +48,40 @@
                 }
             }
         },
+        "/account/verify": {
+            "post": {
+                "description": "Verify user account using email and API Key sent via email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Verify account using email and API key",
+                "parameters": [
+                    {
+                        "description": "Verification payload (email, apiKey)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": { "type": "string" },
+                                "apiKey": { "type": "string" }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Account verified successfully" },
+                    "400": { "description": "Error on validation" }
+                }
+            }
+        },
         "/account/login": {
             "post": {
                 "description": "Log in to an existing account and retrieve API key",

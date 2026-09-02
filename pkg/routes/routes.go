@@ -82,6 +82,7 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 	accountRoutes := eng.Group("/account")
 	{
 		accountRoutes.POST("/register", r.accountHandler.Register)
+		accountRoutes.POST("/verify", r.accountHandler.Verify)
 		accountRoutes.POST("/login", r.accountHandler.Login)
 	}
 

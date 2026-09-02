@@ -10,6 +10,7 @@ import (
 
 type AccountHandler interface {
 	Register(ctx *gin.Context)
+	Verify(ctx *gin.Context)
 	Login(ctx *gin.Context)
 	Me(ctx *gin.Context)
 }
@@ -45,7 +46,35 @@ func (h *accountHandler) Register(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "Account created successfully! An email containing your API key has been sent.",
+		"message": "Account created successfully! An email containing your API key has been sent. Please verify your account before logging in.",
+		"data":    acc,
+	})
+}
+
+// @Summary Verify an account using email and API key
+// @Description Verify a new user account using their email and the API key sent via email
+// @Tags Account
+// @Accept json
+// @Produce json
+// @Param request body account_service.VerifyRequest true "Verification payload"
+// @Success 200 {object} gin.H
+// @Failure 400 {object} gin.H
+// @Router /account/verify [post]
+func (h *accountHandler) Verify(ctx *gin.Context) {
+	var req account_service.VerifyRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	acc, err := h.accountService.Verify(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Account verified successfully! You can now log in and access services.",
 		"data":    acc,
 	})
 }
@@ -101,11 +130,12 @@ func (h *accountHandler) Me(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"id":        acc.Id,
-			"email":     acc.Email,
-			"name":      acc.Name,
-			"apiKey":    acc.ApiKey,
-			"createdAt": acc.CreatedAt,
+			"id":         acc.Id,
+			"email":      acc.Email,
+			"name":       acc.Name,
+			"apiKey":     acc.ApiKey,
+			"isVerified": acc.IsVerified,
+			"createdAt":  acc.CreatedAt,
 		},
 	})
 }

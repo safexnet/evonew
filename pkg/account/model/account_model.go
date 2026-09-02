@@ -14,6 +14,7 @@ type Account struct {
 	PasswordHash string    `json:"-" gorm:"not null"`
 	ApiKey       string    `json:"apiKey" gorm:"uniqueIndex;not null"`
 	IsActive     bool      `json:"isActive" gorm:"default:true"`
+	IsVerified   bool      `json:"isVerified" gorm:"default:false"`
 	CreatedAt    time.Time `json:"createdAt" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time `json:"updatedAt" gorm:"autoUpdateTime"`
 }

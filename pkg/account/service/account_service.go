@@ -20,6 +20,11 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
+type VerifyRequest struct {
+	Email  string `json:"email"`
+	ApiKey string `json:"apiKey"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -27,15 +32,17 @@ type LoginRequest struct {
 }
 
 type AccountResponse struct {
-	ID        string `json:"id"`
-	Email     string `json:"email"`
-	Name      string `json:"name"`
-	ApiKey    string `json:"apiKey"`
-	CreatedAt string `json:"createdAt"`
+	ID         string `json:"id"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	ApiKey     string `json:"apiKey"`
+	IsVerified bool   `json:"isVerified"`
+	CreatedAt  string `json:"createdAt"`
 }
 
 type AccountService interface {
 	Register(req *RegisterRequest) (*AccountResponse, error)
+	Verify(req *VerifyRequest) (*AccountResponse, error)
 	Login(req *LoginRequest) (*AccountResponse, error)
 	GetByApiKey(apiKey string) (*account_model.Account, error)
 }
@@ -89,6 +96,7 @@ func (s *accountService) Register(req *RegisterRequest) (*AccountResponse, error
 		PasswordHash: string(hashedBytes),
 		ApiKey:       apiKey,
 		IsActive:     true,
+		IsVerified:   false,
 	}
 
 	err = s.accountRepo.Create(acc)
@@ -107,11 +115,47 @@ func (s *accountService) Register(req *RegisterRequest) (*AccountResponse, error
 	}(email, name, apiKey)
 
 	return &AccountResponse{
-		ID:        acc.Id,
-		Email:     acc.Email,
-		Name:      acc.Name,
-		ApiKey:    acc.ApiKey,
-		CreatedAt: acc.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:         acc.Id,
+		Email:      acc.Email,
+		Name:       acc.Name,
+		ApiKey:     acc.ApiKey,
+		IsVerified: acc.IsVerified,
+		CreatedAt:  acc.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}, nil
+}
+
+func (s *accountService) Verify(req *VerifyRequest) (*AccountResponse, error) {
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	if email == "" {
+		return nil, errors.New("email is required")
+	}
+	apiKey := strings.TrimSpace(req.ApiKey)
+	if apiKey == "" {
+		return nil, errors.New("API key is required")
+	}
+
+	acc, err := s.accountRepo.GetByEmail(email)
+	if err != nil || acc == nil {
+		return nil, errors.New("account not found")
+	}
+
+	if acc.ApiKey != apiKey {
+		return nil, errors.New("invalid API key provided")
+	}
+
+	acc.IsVerified = true
+	err = s.accountRepo.Update(acc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update account verification status: %w", err)
+	}
+
+	return &AccountResponse{
+		ID:         acc.Id,
+		Email:      acc.Email,
+		Name:       acc.Name,
+		ApiKey:     acc.ApiKey,
+		IsVerified: acc.IsVerified,
+		CreatedAt:  acc.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}, nil
 }
 
@@ -134,16 +178,21 @@ func (s *accountService) Login(req *LoginRequest) (*AccountResponse, error) {
 		return nil, errors.New("invalid email or password")
 	}
 
+	if !acc.IsVerified {
+		return nil, errors.New("please verify your account first using the API key sent to your email")
+	}
+
 	if req.ApiKey != "" && strings.TrimSpace(req.ApiKey) != acc.ApiKey {
 		return nil, errors.New("invalid API Key provided")
 	}
 
 	return &AccountResponse{
-		ID:        acc.Id,
-		Email:     acc.Email,
-		Name:      acc.Name,
-		ApiKey:    acc.ApiKey,
-		CreatedAt: acc.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:         acc.Id,
+		Email:      acc.Email,
+		Name:       acc.Name,
+		ApiKey:     acc.ApiKey,
+		IsVerified: acc.IsVerified,
+		CreatedAt:  acc.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}, nil
 }
 

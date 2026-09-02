@@ -4,16 +4,19 @@ package docs
 import "github.com/swaggo/swag"
 
 const docTemplate = `{
-    "schemes": {{ marshal .Schemes }},
+    "schemes": [
+        "http",
+        "https"
+    ],
     "swagger": "2.0",
     "info": {
-        "description": "{{escape .Description}}",
-        "title": "{{.Title}}",
+        "description": "Evolution GO - whatsmeow",
+        "title": "Evolution GO",
         "contact": {},
-        "version": "{{.Version}}"
+        "version": "1.0"
     },
-    "host": "{{.Host}}",
-    "basePath": "{{.BasePath}}",
+    "host": "localhost:4000",
+    "basePath": "/",
     "paths": {
         "/call/reject": {
             "post": {

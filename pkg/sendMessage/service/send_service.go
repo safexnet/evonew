@@ -3383,6 +3383,15 @@ func NewSendService(
 	}
 }
 
+// SendBulkExcel processes spreadsheet files (.xlsx, .xls, .csv) and sends bulk WhatsApp messages.
+//
+// WORKFLOW & EXISTING STRUCTURE:
+// 1. Validation & MIME Detection: Detect media type (image, video, audio, document) from mediaBytes.
+// 2. Spreadsheet Parsing: Reads CSV rows or Excel sheet rows, establishing column header mappings (e.g. "Phone", "Name").
+// 3. Phone Column Resolution: Automatically searches for columns named 'phone', 'number', 'whatsapp', 'mobile', 'cell', or 'celular' (or defaults to 1st column).
+// 4. Batch Rate Limiting & Delays: Iterates through each record, replacing {{HeaderName}} placeholders in template text.
+// 5. Dispatch: Calls SendMedia (if media file attached), SendLink (if link text URL detected), or SendText via Whatsmeow WhatsApp service.
+// 6. Pauses: Sleeps for 'delay' ms between messages and 'batchDelay' seconds after every 'batchSize' messages.
 func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, delay int32, batchSize int32, batchDelay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
 	if len(fileData) == 0 {
 		return nil, errors.New("empty file data")

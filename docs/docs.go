@@ -3435,6 +3435,14 @@ const docTemplate = `{
                 "summary": "Send bulk WhatsApp messages from an uploaded Excel/CSV file",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "API Key",
+                        "name": "apikey",
+                        "in": "header",
+                        "required": true,
+                        "default": "a1b2c3d4e5f6"
+                    },
+                    {
                         "type": "file",
                         "description": "Spreadsheet File (.xlsx, .csv)",
                         "name": "file",

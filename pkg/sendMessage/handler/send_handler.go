@@ -848,8 +848,9 @@ func NewSendHandler(
 // @Param file formData file true "Spreadsheet File (.xlsx, .csv)"
 // @Param text formData string false "Message template with placeholders (e.g. Hello {{Name}})"
 // @Param media formData file false "Media file upload (Image / Video / Document / Audio)"
-// @Param mediaUrl formData string false "Media URL link (Image / Video / Document / Audio)"
 // @Param delay formData int false "Delay between messages in milliseconds (default: 2000)"
+// @Param batchSize formData int false "Messages per batch limit (default: 20)"
+// @Param batchDelay formData int false "Pause duration between batches in seconds (default: 30)"
 // @Success 200 {object} send_model.BulkSendSummary
 // @Failure 400 {object} gin.H
 // @Failure 500 {object} gin.H
@@ -883,7 +884,6 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 	}
 
 	templateText := ctx.PostForm("text")
-	mediaUrl := ctx.PostForm("mediaUrl")
 
 	var mediaBytes []byte
 	var mediaFileName string
@@ -900,8 +900,8 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
-	if strings.TrimSpace(templateText) == "" && len(mediaBytes) == 0 && strings.TrimSpace(mediaUrl) == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "at least one of 'text', 'media' (file upload), or 'mediaUrl' must be provided"})
+	if strings.TrimSpace(templateText) == "" && len(mediaBytes) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "at least one of 'text' or 'media' (file upload) must be provided"})
 		return
 	}
 
@@ -929,7 +929,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
-	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, mediaUrl, delay, batchSize, batchDelay, instance)
+	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, delay, batchSize, batchDelay, instance)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

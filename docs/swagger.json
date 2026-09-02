@@ -3409,6 +3409,62 @@
                 }
             }
         },
+        "/send/excel": {
+            "post": {
+                "description": "Upload an Excel (.xlsx, .xls) or CSV (.csv) file with customer data to send bulk messages",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Send Message"
+                ],
+                "summary": "Send bulk WhatsApp messages from an uploaded Excel/CSV file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Spreadsheet File (.xlsx, .csv)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Message template with placeholders (e.g. Hello {{Name}})",
+                        "name": "text",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Delay between messages in milliseconds (default: 2000)",
+                        "name": "delay",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "$ref": "#/definitions/gin.H"
+                        }
+                    },
+                    "400": {
+                        "description": "Error on validation",
+                        "schema": {
+                            "$ref": "#/definitions/gin.H"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/gin.H"
+                        }
+                    }
+                }
+            }
+        },
         "/unlabel/chat": {
             "post": {
                 "description": "Remove label from chat",

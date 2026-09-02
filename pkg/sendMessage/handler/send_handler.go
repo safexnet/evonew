@@ -861,6 +861,8 @@ func NewSendHandler(
 // @Param delay formData int false "Delay between messages in milliseconds (default: 2000)"
 // @Param batchSize formData int false "Messages per batch limit (default: 20)"
 // @Param batchDelay formData int false "Pause duration between batches in seconds (default: 30)"
+// @Param batchSize formData int false "Messages per batch limit (default: 20)"
+// @Param batchDelay formData int false "Pause duration between batches in seconds (default: 30)"
 // @Success 200 {object} send_model.BulkSendSummary
 // @Failure 400 {object} gin.H
 // @Failure 500 {object} gin.H

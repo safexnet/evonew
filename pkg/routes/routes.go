@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -62,11 +60,16 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 	eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	eng.GET("/favicon.ico", func(c *gin.Context) {
-		c.Status(http.StatusNoContent)
+		c.File("./manager/dist/assets/favicon.ico")
+	})
+
+	eng.GET("/favicon.png", func(c *gin.Context) {
+		c.File("./manager/dist/assets/favicon.png")
 	})
 
 	// Rotas para o gerenciador React (sem autenticação)
 	eng.Static("/assets", "./manager/dist/assets")
+	eng.Static("/public", "./public")
 
 	// Ajuste nas rotas do manager para suportar client-side routing do React
 	eng.GET("/manager/*any", func(c *gin.Context) {

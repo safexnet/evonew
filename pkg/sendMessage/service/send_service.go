@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chai2010/webp"
 	config "github.com/evolution-foundation/evolution-go/pkg/config"
 	instance_model "github.com/evolution-foundation/evolution-go/pkg/instance/model"
 	logger_wrapper "github.com/evolution-foundation/evolution-go/pkg/logger"
@@ -34,6 +33,7 @@ import (
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
+	"golang.org/x/image/webp"
 	"golang.org/x/net/html"
 	"google.golang.org/protobuf/proto"
 )
@@ -220,7 +220,7 @@ type ButtonStruct struct {
 	// Body description text (required).
 	Description string `json:"description" example:"Confira as condicoes abaixo"`
 	// Footer text (required).
-	Footer string `json:"footer" example:"Evolution GO"`
+	Footer string `json:"footer" example:"Watsify"`
 	// Buttons array. See combination rules on the parent type description.
 	Buttons []Button `json:"buttons"`
 	// Typing delay (milliseconds) applied before sending the message.
@@ -270,7 +270,7 @@ type ListStruct struct {
 	// Label of the button that opens the list. Defaults to "Ver Menu" when empty.
 	ButtonText string `json:"buttonText" example:"Abrir cardapio"`
 	// Footer text (required).
-	FooterText string `json:"footerText" example:"Evolution GO"`
+	FooterText string `json:"footerText" example:"Watsify"`
 	// Sections with rows. At least one section with one row is required.
 	Sections []Section `json:"sections"`
 	// Typing delay (milliseconds) applied before sending the message.
@@ -354,7 +354,7 @@ type CarouselStruct struct {
 	// Optional message body shown above the cards.
 	Body string `json:"body,omitempty" example:"Confira nossas novidades!"`
 	// Optional message footer shown below the cards.
-	Footer string `json:"footer,omitempty" example:"Evolution GO"`
+	Footer string `json:"footer,omitempty" example:"Watsify"`
 	// Typing delay (milliseconds) applied before sending the message.
 	Delay int32 `json:"delay,omitempty" example:"1200"`
 	// If false, skips automatic formatting/validation of `number` into a JID.
@@ -1582,27 +1582,22 @@ func (s *sendService) sendPollWithRetry(data *PollStruct, instance *instance_mod
 }
 
 func convertToWebP(imageData string) ([]byte, error) {
-	var img image.Image
-	var err error
-
 	resp, err := http.Get(imageData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch image from URL: %v", err)
 	}
 	defer resp.Body.Close()
 
-	img, _, err = image.Decode(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %v", err)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, fmt.Errorf("failed to fetch image from URL: HTTP %d", resp.StatusCode)
 	}
 
-	var webpBuffer bytes.Buffer
-	err = webp.Encode(&webpBuffer, img, &webp.Options{Lossless: false, Quality: 80})
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode image to WebP: %v", err)
+		return nil, fmt.Errorf("failed to read image data: %v", err)
 	}
 
-	return webpBuffer.Bytes(), nil
+	return data, nil
 }
 
 func (s *sendService) SendSticker(data *StickerStruct, instance *instance_model.Instance) (*MessageSendStruct, error) {

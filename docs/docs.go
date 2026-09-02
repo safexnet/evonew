@@ -3462,12 +3462,6 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "type": "string",
-                        "description": "Optional Media URL Link (Image / Video / Document / Audio)",
-                        "name": "mediaUrl",
-                        "in": "formData"
-                    },
-                    {
                         "type": "integer",
                         "description": "Delay between messages in milliseconds (default: 2000)",
                         "name": "delay",

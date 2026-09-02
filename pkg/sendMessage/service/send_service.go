@@ -53,7 +53,7 @@ type SendService interface {
 	SendStatusText(data *StatusTextStruct, instance *instance_model.Instance) (*MessageSendStruct, error)
 	SendStatusMediaUrl(data *StatusMediaStruct, instance *instance_model.Instance) (*MessageSendStruct, error)
 	SendStatusMediaFile(data *StatusMediaStruct, fileData []byte, instance *instance_model.Instance) (*MessageSendStruct, error)
-	SendBulkExcel(fileData []byte, fileName string, templateText string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error)
+	SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, mediaUrl string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error)
 }
 
 type sendService struct {
@@ -3383,9 +3383,45 @@ func NewSendService(
 	}
 }
 
-func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
+func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, mediaUrl string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
 	if len(fileData) == 0 {
 		return nil, errors.New("empty file data")
+	}
+
+	hasMediaFile := len(mediaBytes) > 0
+	hasMediaUrl := strings.TrimSpace(mediaUrl) != ""
+	hasText := strings.TrimSpace(templateText) != ""
+
+	if !hasMediaFile && !hasMediaUrl && !hasText {
+		return nil, errors.New("at least one of 'text', 'media' (file), or 'mediaUrl' must be provided")
+	}
+
+	detectedMediaType := "document"
+	detectedMimeType := "application/octet-stream"
+	if hasMediaFile {
+		mKind := mimetype.Detect(mediaBytes)
+		if mKind != nil {
+			detectedMimeType = mKind.String()
+			if strings.HasPrefix(detectedMimeType, "image/") {
+				detectedMediaType = "image"
+			} else if strings.HasPrefix(detectedMimeType, "video/") {
+				detectedMediaType = "video"
+			} else if strings.HasPrefix(detectedMimeType, "audio/") {
+				detectedMediaType = "audio"
+			}
+		}
+	} else if hasMediaUrl {
+		lowerUrl := strings.ToLower(mediaUrl)
+		if strings.HasSuffix(lowerUrl, ".jpg") || strings.HasSuffix(lowerUrl, ".jpeg") || strings.HasSuffix(lowerUrl, ".png") || strings.HasSuffix(lowerUrl, ".webp") || strings.HasSuffix(lowerUrl, ".gif") {
+			detectedMediaType = "image"
+			detectedMimeType = "image/jpeg"
+		} else if strings.HasSuffix(lowerUrl, ".mp4") || strings.HasSuffix(lowerUrl, ".mkv") || strings.HasSuffix(lowerUrl, ".mov") || strings.HasSuffix(lowerUrl, ".avi") {
+			detectedMediaType = "video"
+			detectedMimeType = "video/mp4"
+		} else if strings.HasSuffix(lowerUrl, ".mp3") || strings.HasSuffix(lowerUrl, ".ogg") || strings.HasSuffix(lowerUrl, ".wav") {
+			detectedMediaType = "audio"
+			detectedMimeType = "audio/mp3"
+		}
 	}
 
 	var rows [][]string
@@ -3493,10 +3529,6 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 		}
 
 		formattedMessage := templateText
-		if formattedMessage == "" {
-			formattedMessage = "Hello"
-		}
-
 		for colIdx, headerName := range header {
 			if len(row) > colIdx {
 				val := strings.TrimSpace(row[colIdx])
@@ -3508,22 +3540,42 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 			}
 		}
 
-		textData := &TextStruct{
-			Number: cleanNumber,
-			Text:   formattedMessage,
-			Delay:  0,
+		var sendErr error
+		if hasMediaFile {
+			mediaData := &MediaStruct{
+				Number:   cleanNumber,
+				Type:     detectedMediaType,
+				Caption:  formattedMessage,
+				Filename: mediaFileName,
+			}
+			_, sendErr = s.SendMediaFile(mediaData, mediaBytes, instance)
+		} else if hasMediaUrl {
+			mediaData := &MediaStruct{
+				Number:   cleanNumber,
+				Url:      mediaUrl,
+				Type:     detectedMediaType,
+				Caption:  formattedMessage,
+				Filename: mediaFileName,
+			}
+			_, sendErr = s.SendMediaUrl(mediaData, instance)
+		} else {
+			textData := &TextStruct{
+				Number: cleanNumber,
+				Text:   formattedMessage,
+				Delay:  0,
+			}
+			_, sendErr = s.SendText(textData, instance)
 		}
 
-		_, err := s.SendText(textData, instance)
 		summary.Total++
-		if err != nil {
+		if sendErr != nil {
 			summary.Failed++
 			summary.Results = append(summary.Results, send_model.BulkSendRowResult{
 				Row:    rowIdx + 1,
 				Number: cleanNumber,
 				Name:   nameVal,
 				Status: "failed",
-				Error:  err.Error(),
+				Error:  sendErr.Error(),
 			})
 		} else {
 			summary.Sent++

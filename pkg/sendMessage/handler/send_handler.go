@@ -840,13 +840,15 @@ func NewSendHandler(
 }
 
 // Send Excel / CSV bulk messages
-// @Summary Send bulk WhatsApp messages from an uploaded Excel/CSV file
-// @Description Upload an Excel (.xlsx, .xls) or CSV (.csv) file with customer data to send bulk messages
+// @Summary Send bulk WhatsApp messages (Text/Image/Video) from an uploaded Excel/CSV file
+// @Description Upload an Excel (.xlsx, .xls) or CSV (.csv) file with customer data to send bulk text messages, images, or videos
 // @Tags Send Message
 // @Accept multipart/form-data
 // @Produce json
 // @Param file formData file true "Spreadsheet File (.xlsx, .csv)"
 // @Param text formData string false "Message template with placeholders (e.g. Hello {{Name}})"
+// @Param media formData file false "Media file upload (Image / Video / Document / Audio)"
+// @Param mediaUrl formData string false "Media URL link (Image / Video / Document / Audio)"
 // @Param delay formData int false "Delay between messages in milliseconds (default: 2000)"
 // @Success 200 {object} send_model.BulkSendSummary
 // @Failure 400 {object} gin.H
@@ -863,24 +865,46 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 
 	fileHeader, err := ctx.FormFile("file")
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "missing 'file' in multipart form data"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "missing 'file' (spreadsheet) in multipart form data"})
 		return
 	}
 
 	file, err := fileHeader.Open()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to open uploaded file"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to open uploaded spreadsheet file"})
 		return
 	}
 	defer file.Close()
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file bytes"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read spreadsheet file bytes"})
 		return
 	}
 
 	templateText := ctx.PostForm("text")
+	mediaUrl := ctx.PostForm("mediaUrl")
+
+	var mediaBytes []byte
+	var mediaFileName string
+	mediaHeader, errMedia := ctx.FormFile("media")
+	if errMedia == nil && mediaHeader != nil {
+		mFile, errOpen := mediaHeader.Open()
+		if errOpen == nil {
+			defer mFile.Close()
+			mBytes, errRead := io.ReadAll(mFile)
+			if errRead == nil {
+				mediaBytes = mBytes
+				mediaFileName = mediaHeader.Filename
+			}
+		}
+	}
+
+	if strings.TrimSpace(templateText) == "" && len(mediaBytes) == 0 && strings.TrimSpace(mediaUrl) == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "at least one of 'text', 'media' (file upload), or 'mediaUrl' must be provided"})
+		return
+	}
+
 	delayStr := ctx.PostForm("delay")
 	var delay int32 = 2000
 	if delayStr != "" {
@@ -889,7 +913,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
-	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, delay, instance)
+	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, mediaUrl, delay, instance)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

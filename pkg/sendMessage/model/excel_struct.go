@@ -2,8 +2,9 @@ package send_model
 
 // ExcelUploadRequest represents the multipart form data for uploading spreadsheet files
 type ExcelUploadRequest struct {
-	Text  string `form:"text"`
-	Delay int32  `form:"delay"`
+	Text     string `form:"text"`
+	MediaUrl string `form:"mediaUrl"`
+	Delay    int32  `form:"delay"`
 }
 
 // BulkSendRowResult represents the result of sending a message to a single row in the spreadsheet

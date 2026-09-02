@@ -8,6 +8,32 @@ import (
 	"strconv"
 )
 
+type loginAuth struct {
+	username, password string
+}
+
+func LoginAuth(username, password string) smtp.Auth {
+	return &loginAuth{username: username, password: password}
+}
+
+func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	return "LOGIN", []byte(a.username), nil
+}
+
+func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if more {
+		switch string(fromServer) {
+		case "Username:", "VXNlcm5hbWU6":
+			return []byte(a.username), nil
+		case "Password:", "UGFzc3dvcmQ6":
+			return []byte(a.password), nil
+		default:
+			return []byte(a.password), nil
+		}
+	}
+	return nil, nil
+}
+
 func SendApiKeyEmail(toEmail, userName, apiKey string) error {
 	smtpHost := os.Getenv("SMTP_HOST")
 	if smtpHost == "" {
@@ -43,7 +69,7 @@ func SendApiKeyEmail(toEmail, userName, apiKey string) error {
   <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 8px;">
     <h2 style="color: #1a202c;">Welcome to SafexNext, %s!</h2>
     <p>Your account has been created successfully.</p>
-    <p>Below is your personal <strong>API Key</strong> required for authentication:</p>
+    <p>Below is your personal <strong>API Key</strong> required for activation & authentication:</p>
     <div style="background: #edf2f7; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 18px; font-weight: bold; text-align: center; margin: 20px 0;">
       %s
     </div>
@@ -65,9 +91,7 @@ func SendApiKeyEmail(toEmail, userName, apiKey string) error {
 	}
 	message += "\r\n" + body
 
-	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
-
-	// Establish TLS connection for Office 365 (Port 587 STARTTLS)
+	// Establish connection to Office 365 (Port 587 STARTTLS)
 	c, err := smtp.Dial(fmt.Sprintf("%s:%d", smtpHost, smtpPort))
 	if err != nil {
 		return fmt.Errorf("failed to dial SMTP server: %w", err)
@@ -75,15 +99,22 @@ func SendApiKeyEmail(toEmail, userName, apiKey string) error {
 	defer c.Close()
 
 	tlsConfig := &tls.Config{
-		ServerName: smtpHost,
+		ServerName:         smtpHost,
+		InsecureSkipVerify: false,
 	}
 
 	if err = c.StartTLS(tlsConfig); err != nil {
 		return fmt.Errorf("failed to start TLS: %w", err)
 	}
 
-	if err = c.Auth(auth); err != nil {
-		return fmt.Errorf("SMTP auth failed: %w", err)
+	// Try LOGIN auth mechanism (required for Office 365 / Outlook)
+	authLogin := LoginAuth(smtpUser, smtpPass)
+	if err = c.Auth(authLogin); err != nil {
+		// Fallback to PLAIN auth if LOGIN fails
+		authPlain := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
+		if errPlain := c.Auth(authPlain); errPlain != nil {
+			return fmt.Errorf("SMTP auth failed (LOGIN err: %v, PLAIN err: %v)", err, errPlain)
+		}
 	}
 
 	if err = c.Mail(fromEmail); err != nil {

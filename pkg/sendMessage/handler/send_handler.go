@@ -922,9 +922,9 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
-	// Validate that at least text template, media file, or media URL is present
-	if strings.TrimSpace(templateText) == "" && len(mediaBytes) == 0 && strings.TrimSpace(mediaUrl) == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "at least one of 'text', 'media' (file upload), or 'mediaUrl' must be provided"})
+	// Validate that at least text template or media file is present
+	if strings.TrimSpace(templateText) == "" && len(mediaBytes) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "at least one of 'text' or 'media' (file upload) must be provided"})
 		return
 	}
 
@@ -956,7 +956,7 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 	}
 
 	// 6. Invoke SendBulkExcel service logic
-	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, mediaUrl, delay, batchSize, batchDelay, instance)
+	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, delay, batchSize, batchDelay, instance)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

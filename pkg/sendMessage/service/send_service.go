@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chai2010/webp"
 	config "github.com/evolution-foundation/evolution-go/pkg/config"
 	instance_model "github.com/evolution-foundation/evolution-go/pkg/instance/model"
 	logger_wrapper "github.com/evolution-foundation/evolution-go/pkg/logger"
@@ -34,6 +33,7 @@ import (
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
+	"golang.org/x/image/webp"
 	"golang.org/x/net/html"
 	"google.golang.org/protobuf/proto"
 )
@@ -1582,27 +1582,22 @@ func (s *sendService) sendPollWithRetry(data *PollStruct, instance *instance_mod
 }
 
 func convertToWebP(imageData string) ([]byte, error) {
-	var img image.Image
-	var err error
-
 	resp, err := http.Get(imageData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch image from URL: %v", err)
 	}
 	defer resp.Body.Close()
 
-	img, _, err = image.Decode(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode image: %v", err)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, fmt.Errorf("failed to fetch image from URL: HTTP %d", resp.StatusCode)
 	}
 
-	var webpBuffer bytes.Buffer
-	err = webp.Encode(&webpBuffer, img, &webp.Options{Lossless: false, Quality: 80})
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode image to WebP: %v", err)
+		return nil, fmt.Errorf("failed to read image data: %v", err)
 	}
 
-	return webpBuffer.Bytes(), nil
+	return data, nil
 }
 
 func (s *sendService) SendSticker(data *StickerStruct, instance *instance_model.Instance) (*MessageSendStruct, error) {
@@ -3392,7 +3387,7 @@ func NewSendService(
 // 4. Batch Rate Limiting & Delays: Iterates through each record, replacing {{HeaderName}} placeholders in template text.
 // 5. Dispatch: Calls SendMedia (if media file or mediaUrl attached) or SendText via Whatsmeow WhatsApp service.
 // 6. Pauses: Sleeps for 'delay' ms between messages and 'batchDelay' seconds after every 'batchSize' messages.
-func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, mediaUrl string, delay int32, batchSize int32, batchDelay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
+func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, delay int32, batchSize int32, batchDelay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
 	if len(fileData) == 0 {
 		return nil, errors.New("empty file data")
 	}

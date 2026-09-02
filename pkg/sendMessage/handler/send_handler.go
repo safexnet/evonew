@@ -913,7 +913,23 @@ func (s *sendHandler) SendExcel(ctx *gin.Context) {
 		}
 	}
 
-	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, mediaUrl, delay, instance)
+	batchSizeStr := ctx.PostForm("batchSize")
+	var batchSize int32 = 20
+	if batchSizeStr != "" {
+		if bs, err := strconv.Atoi(batchSizeStr); err == nil && bs > 0 {
+			batchSize = int32(bs)
+		}
+	}
+
+	batchDelayStr := ctx.PostForm("batchDelay")
+	var batchDelay int32 = 30
+	if batchDelayStr != "" {
+		if bd, err := strconv.Atoi(batchDelayStr); err == nil && bd > 0 {
+			batchDelay = int32(bd)
+		}
+	}
+
+	summary, err := s.sendMessageService.SendBulkExcel(fileBytes, fileHeader.Filename, templateText, mediaBytes, mediaFileName, mediaUrl, delay, batchSize, batchDelay, instance)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

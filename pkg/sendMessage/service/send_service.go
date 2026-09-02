@@ -53,7 +53,7 @@ type SendService interface {
 	SendStatusText(data *StatusTextStruct, instance *instance_model.Instance) (*MessageSendStruct, error)
 	SendStatusMediaUrl(data *StatusMediaStruct, instance *instance_model.Instance) (*MessageSendStruct, error)
 	SendStatusMediaFile(data *StatusMediaStruct, fileData []byte, instance *instance_model.Instance) (*MessageSendStruct, error)
-	SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, mediaUrl string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error)
+	SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, mediaUrl string, delay int32, batchSize int32, batchDelay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error)
 }
 
 type sendService struct {
@@ -3383,7 +3383,7 @@ func NewSendService(
 	}
 }
 
-func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, mediaUrl string, delay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
+func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateText string, mediaBytes []byte, mediaFileName string, mediaUrl string, delay int32, batchSize int32, batchDelay int32, instance *instance_model.Instance) (*send_model.BulkSendSummary, error) {
 	if len(fileData) == 0 {
 		return nil, errors.New("empty file data")
 	}
@@ -3493,6 +3493,12 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 	if delay <= 0 {
 		delay = 2000
 	}
+	if batchSize <= 0 {
+		batchSize = 20
+	}
+	if batchDelay <= 0 {
+		batchDelay = 30
+	}
 
 	summary := &send_model.BulkSendSummary{
 		Status:  "completed",
@@ -3588,7 +3594,12 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 		}
 
 		if rowIdx < len(rows)-1 {
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			if summary.Total%int(batchSize) == 0 {
+				s.loggerWrapper.GetLogger(instance.Id).LogInfo("[%s] Reached batch limit of %d messages. Pausing for %d seconds...", instance.Id, batchSize, batchDelay)
+				time.Sleep(time.Duration(batchDelay) * time.Second)
+			} else {
+				time.Sleep(time.Duration(delay) * time.Millisecond)
+			}
 		}
 	}
 

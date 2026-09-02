@@ -3471,7 +3471,22 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Delay between messages in milliseconds (default: 2000)",
                         "name": "delay",
-                        "in": "formData"
+                        "in": "formData",
+                        "default": 2000
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Messages per batch limit (default: 20)",
+                        "name": "batchSize",
+                        "in": "formData",
+                        "default": 20
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pause duration between batches in seconds (default: 30)",
+                        "name": "batchDelay",
+                        "in": "formData",
+                        "default": 30
                     }
                 ],
                 "responses": {

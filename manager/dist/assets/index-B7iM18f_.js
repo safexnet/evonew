@@ -33811,17 +33811,702 @@ const Dz = () => {
   });
 };
 
+// Campaign Dashboard Component: Displays instance-specific analytics metrics and customer interaction logs.
+// Integrates GET /campaign/dashboard?instanceId=... and GET /campaign/customers?instanceId=...
 function zz() {
+  const navigate = Xr();
+  const { instances, fetchInstances } = _p();
+
+  // State for selected instance ID from URL query param or selector
+  const [selectedInstanceId, setSelectedInstanceId] = b.useState(() => {
+    return new URLSearchParams(window.location.search).get("instanceId") || "";
+  });
+
+  // State for Dashboard Statistics metrics (GET /campaign/dashboard)
+  const [stats, setStats] = b.useState({
+    totalUsers: 0,
+    totalMessagesSent: 0,
+    totalMessagesFailed: 0,
+    totalReplies: 0,
+    totalReactions: 0,
+    totalResponded: 0,
+    responseRate: "0.0%",
+  });
+  const [isStatsLoading, setIsStatsLoading] = b.useState(false);
+
+  // State for Customer Table List (GET /campaign/customers)
+  const [customers, setCustomers] = b.useState([]);
+  const [customersTotal, setCustomersTotal] = b.useState(0);
+  const [page, setPage] = b.useState(1);
+  const [limit] = b.useState(10);
+  const [search, setSearch] = b.useState("");
+  const [statusFilter, setStatusFilter] = b.useState("");
+  const [isCustomersLoading, setIsCustomersLoading] = b.useState(false);
+
+  // Fetch all instances on initial mount if not loaded
+  b.useEffect(() => {
+    if (!instances || instances.length === 0) {
+      fetchInstances();
+    }
+  }, []);
+
+  // Sync state if browser back/forward navigation occurs
+  b.useEffect(() => {
+    const handleUrlChange = () => {
+      const urlInstId =
+        new URLSearchParams(window.location.search).get("instanceId") || "";
+      setSelectedInstanceId(urlInstId);
+    };
+    window.addEventListener("popstate", handleUrlChange);
+    return () => window.removeEventListener("popstate", handleUrlChange);
+  }, []);
+
+  // Fetch campaign dashboard stats from API GET /campaign/dashboard?instanceId=...
+  const loadDashboardStats = b.useCallback(async (instId) => {
+    setIsStatsLoading(true);
+    try {
+      const endpoint = instId
+        ? `/campaign/dashboard?instanceId=${encodeURIComponent(instId)}`
+        : "/campaign/dashboard";
+      const response = await Jt.get(endpoint);
+      if (response && response.data && response.data.data) {
+        setStats(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching campaign dashboard stats:", err);
+    } finally {
+      setIsStatsLoading(false);
+    }
+  }, []);
+
+  // Fetch customer list table from API GET /campaign/customers?instanceId=...&page=...&search=...&status=...
+  const loadCustomers = b.useCallback(
+    async (instId, currentPage, currentSearch, currentStatus) => {
+      setIsCustomersLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (instId) params.append("instanceId", instId);
+        params.append("page", String(currentPage));
+        params.append("limit", String(limit));
+        if (currentSearch) params.append("search", currentSearch);
+        if (currentStatus) params.append("status", currentStatus);
+
+        const response = await Jt.get(
+          `/campaign/customers?${params.toString()}`,
+        );
+        if (response && response.data && response.data.data) {
+          setCustomers(response.data.data.customers || []);
+          setCustomersTotal(response.data.data.total || 0);
+        }
+      } catch (err) {
+        console.error("Error fetching campaign customers:", err);
+      } finally {
+        setIsCustomersLoading(false);
+      }
+    },
+    [limit],
+  );
+
+  // Re-fetch stats and customers when parameters change
+  b.useEffect(() => {
+    loadDashboardStats(selectedInstanceId);
+  }, [selectedInstanceId, loadDashboardStats]);
+
+  b.useEffect(() => {
+    loadCustomers(selectedInstanceId, page, search, statusFilter);
+  }, [selectedInstanceId, page, search, statusFilter, loadCustomers]);
+
+  // Handle dropdown instance selection change and update URL search query
+  const handleInstanceSelect = (e) => {
+    const newId = e.target.value;
+    setSelectedInstanceId(newId);
+    setPage(1);
+    const newUrl = newId
+      ? `/manager?instanceId=${encodeURIComponent(newId)}`
+      : "/manager";
+    window.history.pushState(null, "", newUrl);
+  };
+
+  const selectedInstance = instances.find(
+    (inst) => inst.id === selectedInstanceId,
+  );
+  const totalPages = Math.ceil(customersTotal / limit) || 1;
+
   return m.jsxs("div", {
-    className: "p-6",
+    className: "p-6 space-y-6 max-w-7xl mx-auto",
     children: [
-      m.jsx("h1", {
-        className: "mb-4 text-2xl font-bold text-foreground",
-        children: "Dashboard",
+      // Dashboard Header with Title and Instance Selector Dropdown
+      m.jsxs("div", {
+        className:
+          "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-sidebar-border",
+        children: [
+          m.jsxs("div", {
+            children: [
+              m.jsxs("h1", {
+                className:
+                  "text-2xl font-bold tracking-tight text-foreground flex items-center gap-2",
+                children: [
+                  "Campaign Analytics Dashboard",
+                  selectedInstance &&
+                    m.jsx("span", {
+                      className:
+                        "text-xs font-normal px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20",
+                      children:
+                        selectedInstance.instanceName || selectedInstance.name,
+                    }),
+                ],
+              }),
+              m.jsx("p", {
+                className: "text-sm text-muted-foreground mt-1",
+                children: selectedInstanceId
+                  ? `Viewing metrics & customer details for WhatsApp instance ID: ${selectedInstanceId}`
+                  : "Overview of metrics across all WhatsApp instances",
+              }),
+            ],
+          }),
+          // Instance Filter Dropdown
+          m.jsxs("div", {
+            className: "flex items-center gap-2",
+            children: [
+              m.jsx("label", {
+                className:
+                  "text-xs font-medium text-muted-foreground whitespace-nowrap",
+                children: "Filter by Instance:",
+              }),
+              m.jsxs("select", {
+                value: selectedInstanceId,
+                onChange: handleInstanceSelect,
+                className:
+                  "h-9 rounded-md border border-sidebar-border bg-sidebar px-3 py-1 text-xs text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary",
+                children: [
+                  m.jsx("option", { value: "", children: "All Instances" }),
+                  instances.map((inst) =>
+                    m.jsx(
+                      "option",
+                      {
+                        value: inst.id,
+                        children: `${inst.instanceName || inst.name || "Instance"} (${inst.status || "ID: " + inst.id.substring(0, 8)})`,
+                      },
+                      inst.id,
+                    ),
+                  ),
+                ],
+              }),
+            ],
+          }),
+        ],
       }),
-      m.jsx("p", {
-        className: "text-muted-foreground",
-        children: "Dashboard content will be implemented here...",
+
+      // Campaign Dashboard Metrics Cards Grid (GET /campaign/dashboard)
+      m.jsxs("div", {
+        className:
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4",
+        children: [
+          // Stat 1: Total Users
+          m.jsxs(B3, {
+            className:
+              "bg-sidebar border-sidebar-border p-4 rounded-xl shadow-sm hover:border-sidebar-accent transition-all",
+            children: [
+              m.jsxs("div", {
+                className:
+                  "flex items-center justify-between text-muted-foreground mb-2",
+                children: [
+                  m.jsx("span", {
+                    className: "text-xs font-medium uppercase tracking-wider",
+                    children: "Total Users",
+                  }),
+                  m.jsx("div", {
+                    className: "p-2 rounded-lg bg-blue-500/10 text-blue-400",
+                    children: m.jsx("svg", {
+                      className: "w-4 h-4",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      viewBox: "0 0 24 24",
+                      children: m.jsx("path", {
+                        d: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75",
+                      }),
+                    }),
+                  }),
+                ],
+              }),
+              m.jsx("div", {
+                className: "text-2xl font-bold text-foreground",
+                children: isStatsLoading
+                  ? "..."
+                  : (stats.totalUsers || 0).toLocaleString(),
+              }),
+            ],
+          }),
+
+          // Stat 2: Messages Sent
+          m.jsxs(B3, {
+            className:
+              "bg-sidebar border-sidebar-border p-4 rounded-xl shadow-sm hover:border-sidebar-accent transition-all",
+            children: [
+              m.jsxs("div", {
+                className:
+                  "flex items-center justify-between text-muted-foreground mb-2",
+                children: [
+                  m.jsx("span", {
+                    className: "text-xs font-medium uppercase tracking-wider",
+                    children: "Messages Sent",
+                  }),
+                  m.jsx("div", {
+                    className:
+                      "p-2 rounded-lg bg-emerald-500/10 text-emerald-400",
+                    children: m.jsx("svg", {
+                      className: "w-4 h-4",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      viewBox: "0 0 24 24",
+                      children: m.jsx("path", {
+                        d: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+                      }),
+                    }),
+                  }),
+                ],
+              }),
+              m.jsx("div", {
+                className: "text-2xl font-bold text-emerald-400",
+                children: isStatsLoading
+                  ? "..."
+                  : (stats.totalMessagesSent || 0).toLocaleString(),
+              }),
+            ],
+          }),
+
+          // Stat 3: Messages Failed
+          m.jsxs(B3, {
+            className:
+              "bg-sidebar border-sidebar-border p-4 rounded-xl shadow-sm hover:border-sidebar-accent transition-all",
+            children: [
+              m.jsxs("div", {
+                className:
+                  "flex items-center justify-between text-muted-foreground mb-2",
+                children: [
+                  m.jsx("span", {
+                    className: "text-xs font-medium uppercase tracking-wider",
+                    children: "Failed",
+                  }),
+                  m.jsx("div", {
+                    className: "p-2 rounded-lg bg-red-500/10 text-red-400",
+                    children: m.jsx("svg", {
+                      className: "w-4 h-4",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      viewBox: "0 0 24 24",
+                      children: m.jsx("path", {
+                        d: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+                      }),
+                    }),
+                  }),
+                ],
+              }),
+              m.jsx("div", {
+                className: "text-2xl font-bold text-red-400",
+                children: isStatsLoading
+                  ? "..."
+                  : (stats.totalMessagesFailed || 0).toLocaleString(),
+              }),
+            ],
+          }),
+
+          // Stat 4: Replies
+          m.jsxs(B3, {
+            className:
+              "bg-sidebar border-sidebar-border p-4 rounded-xl shadow-sm hover:border-sidebar-accent transition-all",
+            children: [
+              m.jsxs("div", {
+                className:
+                  "flex items-center justify-between text-muted-foreground mb-2",
+                children: [
+                  m.jsx("span", {
+                    className: "text-xs font-medium uppercase tracking-wider",
+                    children: "Replies",
+                  }),
+                  m.jsx("div", {
+                    className:
+                      "p-2 rounded-lg bg-purple-500/10 text-purple-400",
+                    children: m.jsx("svg", {
+                      className: "w-4 h-4",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      viewBox: "0 0 24 24",
+                      children: m.jsx("path", {
+                        d: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+                      }),
+                    }),
+                  }),
+                ],
+              }),
+              m.jsx("div", {
+                className: "text-2xl font-bold text-purple-400",
+                children: isStatsLoading
+                  ? "..."
+                  : (stats.totalReplies || 0).toLocaleString(),
+              }),
+            ],
+          }),
+
+          // Stat 5: Reactions
+          m.jsxs(B3, {
+            className:
+              "bg-sidebar border-sidebar-border p-4 rounded-xl shadow-sm hover:border-sidebar-accent transition-all",
+            children: [
+              m.jsxs("div", {
+                className:
+                  "flex items-center justify-between text-muted-foreground mb-2",
+                children: [
+                  m.jsx("span", {
+                    className: "text-xs font-medium uppercase tracking-wider",
+                    children: "Reactions",
+                  }),
+                  m.jsx("div", {
+                    className: "p-2 rounded-lg bg-amber-500/10 text-amber-400",
+                    children: m.jsx("svg", {
+                      className: "w-4 h-4",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      viewBox: "0 0 24 24",
+                      children: m.jsx("path", {
+                        d: "M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+                      }),
+                    }),
+                  }),
+                ],
+              }),
+              m.jsx("div", {
+                className: "text-2xl font-bold text-amber-400",
+                children: isStatsLoading
+                  ? "..."
+                  : (stats.totalReactions || 0).toLocaleString(),
+              }),
+            ],
+          }),
+
+          // Stat 6: Response Rate
+          m.jsxs(B3, {
+            className:
+              "bg-sidebar border-sidebar-border p-4 rounded-xl shadow-sm hover:border-sidebar-accent transition-all",
+            children: [
+              m.jsxs("div", {
+                className:
+                  "flex items-center justify-between text-muted-foreground mb-2",
+                children: [
+                  m.jsx("span", {
+                    className: "text-xs font-medium uppercase tracking-wider",
+                    children: "Response Rate",
+                  }),
+                  m.jsx("div", {
+                    className: "p-2 rounded-lg bg-cyan-500/10 text-cyan-400",
+                    children: m.jsx("svg", {
+                      className: "w-4 h-4",
+                      fill: "none",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      viewBox: "0 0 24 24",
+                      children: m.jsx("path", {
+                        d: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
+                      }),
+                    }),
+                  }),
+                ],
+              }),
+              m.jsx("div", {
+                className: "text-2xl font-bold text-cyan-400",
+                children: isStatsLoading ? "..." : stats.responseRate || "0.0%",
+              }),
+            ],
+          }),
+        ],
+      }),
+
+      // Customer Messages Log Table Card (GET /campaign/customers)
+      m.jsxs(B3, {
+        className:
+          "bg-sidebar border-sidebar-border rounded-xl p-5 space-y-4 shadow-sm",
+        children: [
+          // Table Title, Search Bar & Status Filter
+          m.jsxs("div", {
+            className:
+              "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-sidebar-border",
+            children: [
+              m.jsxs("div", {
+                children: [
+                  m.jsx("h2", {
+                    className: "text-lg font-semibold text-foreground",
+                    children: "Customer Interaction Table",
+                  }),
+                  m.jsx("p", {
+                    className: "text-xs text-muted-foreground",
+                    children:
+                      "List of WhatsApp recipients with reply, reaction, and delivery status",
+                  }),
+                ],
+              }),
+              m.jsxs("div", {
+                className: "flex flex-wrap items-center gap-2",
+                children: [
+                  // Search Input by Name or Number
+                  m.jsx(Ra, {
+                    placeholder: "Search name or phone...",
+                    value: search,
+                    onChange: (e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    },
+                    className:
+                      "w-48 sm:w-64 h-9 bg-sidebar border-sidebar-border text-xs text-foreground",
+                  }),
+                  // Status Filter Dropdown
+                  m.jsxs("select", {
+                    value: statusFilter,
+                    onChange: (e) => {
+                      setStatusFilter(e.target.value);
+                      setPage(1);
+                    },
+                    className:
+                      "h-9 rounded-md border border-sidebar-border bg-sidebar px-3 text-xs text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary",
+                    children: [
+                      m.jsx("option", { value: "", children: "All Statuses" }),
+                      m.jsx("option", { value: "sent", children: "Sent" }),
+                      m.jsx("option", { value: "failed", children: "Failed" }),
+                      m.jsx("option", {
+                        value: "replied",
+                        children: "Replied",
+                      }),
+                      m.jsx("option", {
+                        value: "reacted",
+                        children: "Reacted",
+                      }),
+                      m.jsx("option", {
+                        value: "responded",
+                        children: "Responded",
+                      }),
+                    ],
+                  }),
+                  // Refresh Button
+                  m.jsx(it, {
+                    variant: "outline",
+                    className:
+                      "h-9 px-3 text-xs bg-sidebar border-sidebar-border hover:bg-sidebar-accent",
+                    onClick: () =>
+                      loadCustomers(
+                        selectedInstanceId,
+                        page,
+                        search,
+                        statusFilter,
+                      ),
+                    children: "Refresh",
+                  }),
+                ],
+              }),
+            ],
+          }),
+
+          // Data Table Container
+          m.jsx("div", {
+            className:
+              "overflow-x-auto rounded-lg border border-sidebar-border",
+            children: isCustomersLoading
+              ? m.jsx("div", {
+                  className: "p-8 text-center text-xs text-muted-foreground",
+                  children: "Loading customer logs...",
+                })
+              : customers.length === 0
+                ? m.jsx("div", {
+                    className: "p-8 text-center text-xs text-muted-foreground",
+                    children:
+                      "No customer records found for the selected instance or search filter.",
+                  })
+                : m.jsxs("table", {
+                    className: "w-full text-left text-xs text-foreground",
+                    children: [
+                      m.jsx("thead", {
+                        className:
+                          "bg-sidebar-accent/50 text-muted-foreground font-medium border-b border-sidebar-border",
+                        children: m.jsxs("tr", {
+                          children: [
+                            m.jsx("th", {
+                              className: "p-3",
+                              children: "Customer / Number",
+                            }),
+                            m.jsx("th", {
+                              className: "p-3",
+                              children: "Message",
+                            }),
+                            m.jsx("th", {
+                              className: "p-3",
+                              children: "Delivery Status",
+                            }),
+                            m.jsx("th", {
+                              className: "p-3",
+                              children: "Reply Status",
+                            }),
+                            m.jsx("th", {
+                              className: "p-3",
+                              children: "Reaction",
+                            }),
+                            m.jsx("th", {
+                              className: "p-3",
+                              children: "Sent At",
+                            }),
+                          ],
+                        }),
+                      }),
+                      m.jsx("tbody", {
+                        className: "divide-y divide-sidebar-border",
+                        children: customers.map((c) =>
+                          m.jsxs(
+                            "tr",
+                            {
+                              className:
+                                "hover:bg-sidebar-accent/30 transition-colors",
+                              children: [
+                                // Customer Name & Phone Number
+                                m.jsxs("td", {
+                                  className: "p-3 font-medium",
+                                  children: [
+                                    m.jsx("div", {
+                                      className:
+                                        "text-foreground font-semibold",
+                                      children: c.name || "Unknown Customer",
+                                    }),
+                                    m.jsx("div", {
+                                      className:
+                                        "text-muted-foreground text-[11px] font-mono",
+                                      children: c.number,
+                                    }),
+                                  ],
+                                }),
+                                // Message Text snippet
+                                m.jsx("td", {
+                                  className:
+                                    "p-3 max-w-[200px] truncate text-muted-foreground",
+                                  title: c.messageText || "",
+                                  children: c.messageText || "-",
+                                }),
+                                // Status Badge
+                                m.jsx("td", {
+                                  className: "p-3",
+                                  children:
+                                    c.messageStatus === "sent"
+                                      ? m.jsx("span", {
+                                          className:
+                                            "px-2 py-0.5 rounded text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium",
+                                          children: "Sent",
+                                        })
+                                      : m.jsx("span", {
+                                          className:
+                                            "px-2 py-0.5 rounded text-[11px] bg-red-500/10 text-red-400 border border-red-500/20 font-medium",
+                                          children: c.messageStatus || "Failed",
+                                        }),
+                                }),
+                                // Reply Status & Reply Text
+                                m.jsx("td", {
+                                  className: "p-3",
+                                  children: c.hasReplied
+                                    ? m.jsxs("div", {
+                                        className: "flex flex-col gap-0.5",
+                                        children: [
+                                          m.jsx("span", {
+                                            className:
+                                              "px-2 py-0.5 w-max rounded text-[11px] bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium",
+                                            children: "Replied",
+                                          }),
+                                          c.replyText &&
+                                            m.jsx("span", {
+                                              className:
+                                                "text-[11px] text-muted-foreground italic truncate max-w-[150px]",
+                                              children: `"${c.replyText}"`,
+                                            }),
+                                        ],
+                                      })
+                                    : m.jsx("span", {
+                                        className:
+                                          "text-muted-foreground text-[11px]",
+                                        children: "No Reply",
+                                      }),
+                                }),
+                                // Reaction Emoji
+                                m.jsx("td", {
+                                  className: "p-3",
+                                  children: c.hasReacted
+                                    ? m.jsxs("span", {
+                                        className:
+                                          "px-2 py-0.5 rounded text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium flex items-center gap-1 w-max",
+                                        children: [
+                                          c.reactionEmoji || "👍",
+                                          " Reacted",
+                                        ],
+                                      })
+                                    : m.jsx("span", {
+                                        className:
+                                          "text-muted-foreground text-[11px]",
+                                        children: "-",
+                                      }),
+                                }),
+                                // Sent At Timestamp
+                                m.jsx("td", {
+                                  className:
+                                    "p-3 text-muted-foreground text-[11px] whitespace-nowrap",
+                                  children: c.sentAt
+                                    ? new Date(c.sentAt).toLocaleString()
+                                    : "-",
+                                }),
+                              ],
+                            },
+                            c.id,
+                          ),
+                        ),
+                      }),
+                    ],
+                  }),
+          }),
+
+          // Pagination Footer
+          m.jsxs("div", {
+            className:
+              "flex items-center justify-between pt-2 text-xs text-muted-foreground",
+            children: [
+              m.jsxs("div", {
+                children: [
+                  "Page ",
+                  m.jsx("strong", { children: page }),
+                  " of ",
+                  m.jsx("strong", { children: totalPages }),
+                  ` (${customersTotal} total records)`,
+                ],
+              }),
+              m.jsxs("div", {
+                className: "flex items-center gap-2",
+                children: [
+                  m.jsx(it, {
+                    variant: "outline",
+                    className:
+                      "h-8 px-3 text-xs bg-sidebar border-sidebar-border",
+                    disabled: page <= 1,
+                    onClick: () => setPage((p) => Math.max(1, p - 1)),
+                    children: "Previous",
+                  }),
+                  m.jsx(it, {
+                    variant: "outline",
+                    className:
+                      "h-8 px-3 text-xs bg-sidebar border-sidebar-border",
+                    disabled: page >= totalPages,
+                    onClick: () => setPage((p) => p + 1),
+                    children: "Next",
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
       }),
     ],
   });
@@ -33982,6 +34667,7 @@ function Fz({
   onDisconnect: c,
   onSendMessage: u,
   onTestMessage: f,
+  onViewDashboard: d, // Added onViewDashboard prop for instance redirection
 }) {
   const g = t.status === "open";
   return m.jsx(B3, {
@@ -34125,6 +34811,19 @@ function Fz({
                 "rounded-none h-12 px-4 text-gray-500 hover:text-gray-300 hover:bg-gray-500/10",
               onClick: () => r(t),
               children: m.jsx(iA, { className: "h-4 w-4" }),
+            }),
+            m.jsx("div", { className: "w-px bg-sidebar-border" }),
+            // Instance Dashboard Redirection Button: Redirects user to dashboard filtered by this instance's ID
+            m.jsx(it, {
+              variant: "ghost",
+              className:
+                "rounded-none h-12 px-4 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center justify-center gap-1",
+              onClick: () =>
+                d
+                  ? d(t)
+                  : (window.location.href = `/manager?instanceId=${t.id}`),
+              title: "View Instance Dashboard",
+              children: m.jsx(HR, { className: "h-4 w-4" }),
             }),
             m.jsx("div", { className: "w-px bg-sidebar-border" }),
             m.jsx(it, {
@@ -37113,6 +37812,9 @@ function uL() {
                       onDisconnect: ue,
                       onSendMessage: te,
                       onTestMessage: ne,
+                      // Redirect button handler: redirects to instance dashboard with instanceId query param
+                      onViewDashboard: (inst) =>
+                        t(`/manager?instanceId=${inst.id}`),
                     },
                     ce.instanceName,
                   ),

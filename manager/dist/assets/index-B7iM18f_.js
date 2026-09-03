@@ -20752,34 +20752,34 @@ function ik() {
       m.jsxs("div", {
         className: "flex items-center gap-2 px-4",
         children: [
-          m.jsxs(Mh, {
-            to: "/manager/api-tester",
-            className: ({ isActive: u }) =>
-              `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${u ? "bg-purple-500/15 text-purple-400" : "text-sidebar-foreground hover:bg-sidebar-accent dark:text-gray-200 dark:hover:bg-sidebar-accent"}`,
-            title: "Testar endpoints da API interativamente",
-            children: [
-              m.jsx(pA, { className: "h-4 w-4" }),
-              m.jsx("span", {
-                className: "hidden sm:inline",
-                children: "API Tester",
-              }),
-            ],
-          }),
-          m.jsxs("a", {
-            href: c,
-            target: "_blank",
-            rel: "noreferrer noopener",
-            className:
-              "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent dark:text-gray-200 dark:hover:bg-sidebar-accent",
-            title: "Open Swagger in new tab",
-            children: [
-              m.jsx(oR, { className: "h-4 w-4" }),
-              m.jsx("span", {
-                className: "hidden sm:inline",
-                children: "Swagger",
-              }),
-            ],
-          }),
+          // m.jsxs(Mh, {
+          //   to: "/manager/api-tester",
+          //   className: ({ isActive: u }) =>
+          //     `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${u ? "bg-purple-500/15 text-purple-400" : "text-sidebar-foreground hover:bg-sidebar-accent dark:text-gray-200 dark:hover:bg-sidebar-accent"}`,
+          //   title: "Testar endpoints da API interativamente",
+          //   children: [
+          //     m.jsx(pA, { className: "h-4 w-4" }),
+          //     m.jsx("span", {
+          //       className: "hidden sm:inline",
+          //       children: "API Tester",
+          //     }),
+          //   ],
+          // }),
+          // m.jsxs("a", {
+          //   href: c,
+          //   target: "_blank",
+          //   rel: "noreferrer noopener",
+          //   className:
+          //     "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent dark:text-gray-200 dark:hover:bg-sidebar-accent",
+          //   title: "Open Swagger in new tab",
+          //   children: [
+          //     m.jsx(oR, { className: "h-4 w-4" }),
+          //     m.jsx("span", {
+          //       className: "hidden sm:inline",
+          //       children: "Swagger",
+          //     }),
+          //   ],
+          // }),
           m.jsx("button", {
             onClick: s,
             className:

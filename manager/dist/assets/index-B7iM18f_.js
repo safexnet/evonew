@@ -36425,8 +36425,8 @@ const rL = Ko({
   message: Yt().min(1, "Message is required"),
 });
 function sL({ open: t, onClose: n, instance: r }) {
-  // Tab state: "single" or "excel"
-  const [sendMode, setSendMode] = b.useState("single");
+  // Tab state: "excel" or "single"
+  const [sendMode, setSendMode] = b.useState("excel");
 
   // Single Message Form Hook
   const {
@@ -36543,20 +36543,10 @@ function sL({ open: t, onClose: n, instance: r }) {
           ],
         }),
 
-        /* Mode Selector Tabs (Single Message vs Bulk Excel Upload) */
+        /* Mode Selector Tabs (Bulk Excel Upload vs Single Message) */
         m.jsxs("div", {
           className: "mb-4 flex rounded-md bg-muted p-1",
           children: [
-            m.jsx("button", {
-              type: "button",
-              onClick: () => setSendMode("single"),
-              className:
-                "flex-1 rounded-sm py-1.5 text-sm font-medium transition-all " +
-                (sendMode === "single"
-                  ? "bg-background text-foreground shadow"
-                  : "text-muted-foreground hover:text-foreground"),
-              children: "Single Message",
-            }),
             m.jsx("button", {
               type: "button",
               onClick: () => setSendMode("excel"),
@@ -36566,6 +36556,16 @@ function sL({ open: t, onClose: n, instance: r }) {
                   ? "bg-background text-foreground shadow"
                   : "text-muted-foreground hover:text-foreground"),
               children: "Bulk Excel Send",
+            }),
+            m.jsx("button", {
+              type: "button",
+              onClick: () => setSendMode("single"),
+              className:
+                "flex-1 rounded-sm py-1.5 text-sm font-medium transition-all " +
+                (sendMode === "single"
+                  ? "bg-background text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground"),
+              children: "Single Message",
             }),
           ],
         }),

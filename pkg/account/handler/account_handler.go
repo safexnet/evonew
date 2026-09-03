@@ -23,6 +23,10 @@ func NewAccountHandler(accountService account_service.AccountService) AccountHan
 	return &accountHandler{accountService: accountService}
 }
 
+// Register handles POST /account/register
+// Flow step 1: User submits name, email, and password.
+// System hashes password, generates unique API Key (evo_live_...), saves account to DB (isVerified=false),
+// sends API key via email, and returns 201 Created with account details.
 // @Summary Register a new account
 // @Description Register a new user account, save credentials to DB, generate an API key, and send it via email
 // @Tags Account
@@ -46,11 +50,14 @@ func (h *accountHandler) Register(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "Account created successfully! An email containing your API key has been sent. Please verify your account before logging in.",
+		"message": "An API key has been sent if this email is valid. Please verify your account using that key.",
 		"data":    acc,
 	})
 }
 
+// Verify handles POST /account/verify
+// Flow step 2: User enters registered email and API Key (received via email or creation response).
+// System validates key, sets isVerified=true in DB, enabling the user to log in.
 // @Summary Verify an account using email and API key
 // @Description Verify a new user account using their email and the API key sent via email
 // @Tags Account
@@ -79,6 +86,10 @@ func (h *accountHandler) Verify(ctx *gin.Context) {
 	})
 }
 
+// Login handles POST /account/login
+// Flow step 3: User submits registered email and password.
+// System checks password hash and account verification status (isVerified must be true).
+// Returns 200 OK with user details including account API Key, which frontend uses for session auth.
 // @Summary Log in to an account
 // @Description Authenticate user credentials and return API key
 // @Tags Account

@@ -65,6 +65,13 @@ func generateSecureApiKey() string {
 	return "evo_live_" + hex.EncodeToString(b)
 }
 
+// Register creates a new user account:
+// 1. Validates input (email, name, password >= 6 chars).
+// 2. Checks email uniqueness in DB.
+// 3. Hashes password using bcrypt.
+// 4. Generates a secure API key with prefix "evo_live_".
+// 5. Stores account in DB with IsVerified = false.
+// 6. Asynchronously dispatches email with the generated API key.
 func (s *accountService) Register(req *RegisterRequest) (*AccountResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	if email == "" {
@@ -124,6 +131,10 @@ func (s *accountService) Register(req *RegisterRequest) (*AccountResponse, error
 	}, nil
 }
 
+// Verify activates an account:
+// 1. Validates email and API key presence.
+// 2. Retrieves account from DB and verifies key match.
+// 3. Updates IsVerified to true in DB so user can subsequently log in.
 func (s *accountService) Verify(req *VerifyRequest) (*AccountResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	if email == "" {
@@ -159,6 +170,10 @@ func (s *accountService) Verify(req *VerifyRequest) (*AccountResponse, error) {
 	}, nil
 }
 
+// Login authenticates a user account:
+// 1. Checks email and password credentials using bcrypt.
+// 2. Ensures the account is verified (IsVerified must be true).
+// 3. Returns the account response containing the user's ApiKey to grant access to the dashboard.
 func (s *accountService) Login(req *LoginRequest) (*AccountResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	if email == "" {

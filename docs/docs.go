@@ -17,6 +17,18 @@ const docTemplate = `{
     },
     "host": "localhost:4000",
     "basePath": "/",
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "apikey",
+            "in": "header"
+        }
+    },
+    "security": [
+        {
+            "ApiKeyAuth": []
+        }
+    ],
     "paths": {
         "/campaign/dashboard": {
             "get": {

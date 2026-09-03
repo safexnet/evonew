@@ -12,6 +12,18 @@
         "contact": {},
         "version": "1.0"
     },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "apikey",
+            "in": "header"
+        }
+    },
+    "security": [
+        {
+            "ApiKeyAuth": []
+        }
+    ],
     "paths": {
         "/campaign/dashboard": {
             "get": {

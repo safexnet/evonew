@@ -36707,60 +36707,60 @@ function sL({ open: t, onClose: n, instance: r }) {
                 }),
 
                 /* Rate limiting settings: Delay, Batch Size, Batch Delay */
-                m.jsxs("div", {
-                  className: "grid grid-cols-3 gap-2",
-                  children: [
-                    m.jsxs("div", {
-                      children: [
-                        m.jsx("label", {
-                          className:
-                            "mb-1 block text-xs font-medium text-foreground",
-                          children: "Delay (ms)",
-                        }),
-                        m.jsx("input", {
-                          type: "number",
-                          value: delay,
-                          onChange: (e) => setDelay(Number(e.target.value)),
-                          className:
-                            "w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground",
-                        }),
-                      ],
-                    }),
-                    m.jsxs("div", {
-                      children: [
-                        m.jsx("label", {
-                          className:
-                            "mb-1 block text-xs font-medium text-foreground",
-                          children: "Batch Size",
-                        }),
-                        m.jsx("input", {
-                          type: "number",
-                          value: batchSize,
-                          onChange: (e) => setBatchSize(Number(e.target.value)),
-                          className:
-                            "w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground",
-                        }),
-                      ],
-                    }),
-                    m.jsxs("div", {
-                      children: [
-                        m.jsx("label", {
-                          className:
-                            "mb-1 block text-xs font-medium text-foreground",
-                          children: "Batch Delay (s)",
-                        }),
-                        m.jsx("input", {
-                          type: "number",
-                          value: batchDelay,
-                          onChange: (e) =>
-                            setBatchDelay(Number(e.target.value)),
-                          className:
-                            "w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground",
-                        }),
-                      ],
-                    }),
-                  ],
-                }),
+                // m.jsxs("div", {
+                //   className: "grid grid-cols-3 gap-2",
+                //   children: [
+                //     m.jsxs("div", {
+                //       children: [
+                //         m.jsx("label", {
+                //           className:
+                //             "mb-1 block text-xs font-medium text-foreground",
+                //           children: "Delay (ms)",
+                //         }),
+                //         m.jsx("input", {
+                //           type: "number",
+                //           value: delay,
+                //           onChange: (e) => setDelay(Number(e.target.value)),
+                //           className:
+                //             "w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground",
+                //         }),
+                //       ],
+                //     }),
+                //     m.jsxs("div", {
+                //       children: [
+                //         m.jsx("label", {
+                //           className:
+                //             "mb-1 block text-xs font-medium text-foreground",
+                //           children: "Batch Size",
+                //         }),
+                //         m.jsx("input", {
+                //           type: "number",
+                //           value: batchSize,
+                //           onChange: (e) => setBatchSize(Number(e.target.value)),
+                //           className:
+                //             "w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground",
+                //         }),
+                //       ],
+                //     }),
+                //     m.jsxs("div", {
+                //       children: [
+                //         m.jsx("label", {
+                //           className:
+                //             "mb-1 block text-xs font-medium text-foreground",
+                //           children: "Batch Delay (s)",
+                //         }),
+                //         m.jsx("input", {
+                //           type: "number",
+                //           value: batchDelay,
+                //           onChange: (e) =>
+                //             setBatchDelay(Number(e.target.value)),
+                //           className:
+                //             "w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground",
+                //         }),
+                //       ],
+                //     }),
+                //   ],
+                // }),
 
                 /* Submit Buttons */
                 m.jsxs("div", {

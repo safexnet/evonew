@@ -33267,6 +33267,7 @@ const Dz = () => {
   const [loginPassword, setLoginPassword] = b.useState("");
   const [showLoginPassword, setShowLoginPassword] = b.useState(!1);
 
+  /*
   const [regName, setRegName] = b.useState("");
   const [regEmail, setRegEmail] = b.useState("");
   const [regPassword, setRegPassword] = b.useState("");
@@ -33274,6 +33275,7 @@ const Dz = () => {
 
   const [verifyEmail, setVerifyEmail] = b.useState("");
   const [verifyApiKey, setVerifyApiKey] = b.useState("");
+  */
 
   const [customApiUrl, setCustomApiUrl] = b.useState(
     u || window.location.origin,
@@ -33335,6 +33337,7 @@ const Dz = () => {
     }
   };
 
+  /*
   const handleAccountRegister = async (e) => {
     e.preventDefault();
     if (!regName || !regEmail || !regPassword) {
@@ -33408,6 +33411,7 @@ const Dz = () => {
       setLoading(!1);
     }
   };
+  */
 
   return m.jsx("div", {
     className:
@@ -33439,6 +33443,7 @@ const Dz = () => {
           className:
             "bg-background/80 backdrop-blur-sm border rounded-lg p-6 shadow-lg space-y-4",
           children: [
+            /*
             m.jsxs("div", {
               className:
                 "flex rounded-md bg-muted p-1 gap-1 text-xs font-medium border mb-4",
@@ -33484,7 +33489,8 @@ const Dz = () => {
                 }),
               ],
             }),
-            activeTab === "login" &&
+            */
+            (activeTab === "login" || true) &&
               m.jsxs("div", {
                 className: "space-y-1 mb-4",
                 children: [
@@ -33498,6 +33504,7 @@ const Dz = () => {
                   }),
                 ],
               }),
+            /*
             activeTab === "register" &&
               m.jsxs("div", {
                 className: "space-y-1 mb-4",
@@ -33527,6 +33534,7 @@ const Dz = () => {
                   }),
                 ],
               }),
+            */
             error &&
               m.jsxs(M3, {
                 variant: "destructive",
@@ -33609,6 +33617,7 @@ const Dz = () => {
                     className: "w-full",
                     children: loading ? "Signing In..." : "Sign In",
                   }),
+                  /*
                   m.jsx("div", {
                     className: "text-center text-xs text-muted-foreground pt-2",
                     children: m.jsxs("p", {
@@ -33627,8 +33636,10 @@ const Dz = () => {
                       ],
                     }),
                   }),
+                  */
                 ],
               }),
+            /*
             activeTab === "register" &&
               m.jsxs("form", {
                 onSubmit: handleAccountRegister,
@@ -33784,6 +33795,7 @@ const Dz = () => {
                   }),
                 ],
               }),
+            */
           ],
         }),
         m.jsx("div", {

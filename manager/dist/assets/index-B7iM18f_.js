@@ -16611,6 +16611,12 @@ const K2 = oe.forwardRef(function (n, r) {
     ],
   ],
   EA = Ge("zap", SA);
+const menuPathData = [
+    ["line", { x1: "4", x2: "20", y1: "12", y2: "12", key: "1" }],
+    ["line", { x1: "4", x2: "20", y1: "6", y2: "6", key: "2" }],
+    ["line", { x1: "4", x2: "20", y1: "18", y2: "18", key: "3" }],
+  ],
+  MenuIcon = Ge("menu", menuPathData);
 class _A extends b.Component {
   constructor(r) {
     super(r);
@@ -17998,29 +18004,40 @@ const mj = [
   { to: "/manager", label: "Dashboard", icon: HR },
   { to: "/manager/instances", label: "Instances", icon: mA },
 ];
-function hj() {
+function hj({ mobileOpen, setMobileOpen }) {
   const t = new Date().getFullYear();
-  return m.jsxs("div", {
-    className:
-      "hidden md:flex bg-sidebar text-sidebar-foreground flex-col w-56 border-r border-sidebar-border",
+  const navContent = m.jsxs(m.Fragment, {
     children: [
-      m.jsx("div", {
-        className: "h-16 flex items-center px-4 border-b border-sidebar-border",
-        children: m.jsxs("div", {
-          className: "flex items-center gap-2",
-          children: [
-            m.jsx("img", {
-              src: "/assets/logo-light.png",
-              alt: "Watsify",
-              className: "watsify-logo-light h-9 max-w-[175px] object-contain",
+      m.jsxs("div", {
+        className:
+          "h-16 flex items-center justify-between px-4 border-b border-sidebar-border",
+        children: [
+          m.jsxs("div", {
+            className: "flex items-center gap-2",
+            children: [
+              m.jsx("img", {
+                src: "/assets/logo-light.png",
+                alt: "Watsify",
+                className:
+                  "watsify-logo-light h-9 max-w-[175px] object-contain",
+              }),
+              m.jsx("img", {
+                src: "/assets/logo-dark.png",
+                alt: "Watsify",
+                className: "watsify-logo-dark h-9 max-w-[175px] object-contain",
+              }),
+            ],
+          }),
+          setMobileOpen &&
+            m.jsx("button", {
+              onClick: () => setMobileOpen(!1),
+              className:
+                "md:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent focus:outline-none",
+              "aria-label": "Close Sidebar",
+              title: "Close Sidebar",
+              children: m.jsx(Es, { className: "h-5 w-5" }),
             }),
-            m.jsx("img", {
-              src: "/assets/logo-dark.png",
-              alt: "Watsify",
-              className: "watsify-logo-dark h-9 max-w-[175px] object-contain",
-            }),
-          ],
-        }),
+        ],
       }),
       m.jsx("nav", {
         className: "space-y-1.5 flex-1 px-2 py-4",
@@ -18030,6 +18047,7 @@ function hj() {
             {
               to: n.to,
               end: n.to === "/manager",
+              onClick: () => setMobileOpen && setMobileOpen(!1),
               className: ({ isActive: r }) =>
                 th(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all",
@@ -18070,6 +18088,30 @@ function hj() {
           }),
         ],
       }),
+    ],
+  });
+
+  return m.jsxs(m.Fragment, {
+    children: [
+      m.jsx("div", {
+        className:
+          "hidden md:flex bg-sidebar text-sidebar-foreground flex-col w-56 border-r border-sidebar-border h-full flex-shrink-0",
+        children: navContent,
+      }),
+      mobileOpen &&
+        m.jsxs(m.Fragment, {
+          children: [
+            m.jsx("div", {
+              className: "fixed inset-0 z-40 bg-black/50 md:hidden",
+              onClick: () => setMobileOpen(!1),
+            }),
+            m.jsx("div", {
+              className:
+                "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-2xl md:hidden",
+              children: navContent,
+            }),
+          ],
+        }),
     ],
   });
 }
@@ -20735,7 +20777,7 @@ function ok() {
     throw new Error("useDarkMode deve ser usado dentro de um DarkModeProvider");
   return t;
 }
-function ik() {
+function ik({ onOpenMobile }) {
   const { logout: t, apiUrl: n } = xl(),
     { theme: r, toggleTheme: s } = ok(),
     i = () => {
@@ -20746,40 +20788,40 @@ function ik() {
       : "/swagger/index.html";
   return m.jsxs("header", {
     className:
-      "flex h-16 items-center justify-between border-b border-sidebar-border bg-sidebar px-0 py-3 shadow-sm",
+      "flex h-16 items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 shadow-sm",
     children: [
-      m.jsx("div", { className: "w-56 flex items-center px-4" }),
       m.jsxs("div", {
-        className: "flex items-center gap-2 px-4",
+        className: "flex items-center gap-3",
         children: [
-          // m.jsxs(Mh, {
-          //   to: "/manager/api-tester",
-          //   className: ({ isActive: u }) =>
-          //     `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${u ? "bg-purple-500/15 text-purple-400" : "text-sidebar-foreground hover:bg-sidebar-accent dark:text-gray-200 dark:hover:bg-sidebar-accent"}`,
-          //   title: "Testar endpoints da API interativamente",
-          //   children: [
-          //     m.jsx(pA, { className: "h-4 w-4" }),
-          //     m.jsx("span", {
-          //       className: "hidden sm:inline",
-          //       children: "API Tester",
-          //     }),
-          //   ],
-          // }),
-          // m.jsxs("a", {
-          //   href: c,
-          //   target: "_blank",
-          //   rel: "noreferrer noopener",
-          //   className:
-          //     "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent dark:text-gray-200 dark:hover:bg-sidebar-accent",
-          //   title: "Open Swagger in new tab",
-          //   children: [
-          //     m.jsx(oR, { className: "h-4 w-4" }),
-          //     m.jsx("span", {
-          //       className: "hidden sm:inline",
-          //       children: "Swagger",
-          //     }),
-          //   ],
-          // }),
+          m.jsx("button", {
+            onClick: onOpenMobile,
+            className:
+              "md:hidden p-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent focus:outline-none",
+            "aria-label": "Toggle Menu",
+            title: "Toggle Menu",
+            children: m.jsx(MenuIcon, { className: "h-6 w-6" }),
+          }),
+          m.jsxs("div", {
+            className: "flex md:hidden items-center gap-2",
+            children: [
+              m.jsx("img", {
+                src: "/assets/logo-light.png",
+                alt: "Watsify",
+                className:
+                  "watsify-logo-light h-7 max-w-[130px] object-contain",
+              }),
+              m.jsx("img", {
+                src: "/assets/logo-dark.png",
+                alt: "Watsify",
+                className: "watsify-logo-dark h-7 max-w-[130px] object-contain",
+              }),
+            ],
+          }),
+        ],
+      }),
+      m.jsxs("div", {
+        className: "flex items-center gap-2 px-2",
+        children: [
           m.jsx("button", {
             onClick: s,
             className:
@@ -20802,14 +20844,15 @@ function ik() {
   });
 }
 function lk({ children: t }) {
+  const [mobileOpen, setMobileOpen] = b.useState(!1);
   return m.jsxs("div", {
     className: "flex h-screen bg-background",
     children: [
-      m.jsx(hj, {}),
+      m.jsx(hj, { mobileOpen, setMobileOpen }),
       m.jsxs("div", {
         className: "flex flex-1 flex-col overflow-hidden",
         children: [
-          m.jsx(ik, {}),
+          m.jsx(ik, { onOpenMobile: () => setMobileOpen(!0) }),
           m.jsx("main", {
             className: "flex-1 overflow-y-auto",
             children: t || m.jsx(VN, {}),

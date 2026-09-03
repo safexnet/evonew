@@ -34419,12 +34419,12 @@ function zz() {
                                               "px-2 py-0.5 w-max rounded text-[11px] bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium",
                                             children: "Replied",
                                           }),
-                                          c.replyText &&
-                                            m.jsx("span", {
-                                              className:
-                                                "text-[11px] text-muted-foreground italic truncate max-w-[150px]",
-                                              children: `"${c.replyText}"`,
-                                            }),
+                                          // c.replyText &&
+                                          //   m.jsx("span", {
+                                          //     className:
+                                          //       "text-[11px] text-muted-foreground italic truncate max-w-[150px]",
+                                          //     children: `"${c.replyText}"`,
+                                          //   }),
                                         ],
                                       })
                                     : m.jsx("span", {

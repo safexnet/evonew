@@ -25,7 +25,6 @@
   <a href="mailto:suporte@evofoundation.com.br">Support</a>
 </p>
 
-
 ---
 
 ## About
@@ -117,13 +116,13 @@ LOGTYPE=console
 # MINIO_SECRET_KEY=minioadmin
 ```
 
-| Variable | Description | Default |
-|---|---|---|
-| `SERVER_PORT` | Server port | `8080` |
-| `CLIENT_NAME` | Client identifier | `evolution` |
-| `GLOBAL_API_KEY` | API authentication key | **Required** |
-| `DATABASE_SAVE_MESSAGES` | Enable message storage | `false` |
-| `WADEBUG` | WhatsApp debug level | `INFO` |
+| Variable                 | Description            | Default      |
+| ------------------------ | ---------------------- | ------------ |
+| `SERVER_PORT`            | Server port            | `8080`       |
+| `CLIENT_NAME`            | Client identifier      | `evolution`  |
+| `GLOBAL_API_KEY`         | API authentication key | **Required** |
+| `DATABASE_SAVE_MESSAGES` | Enable message storage | `false`      |
+| `WADEBUG`                | WhatsApp debug level   | `INFO`       |
 
 ---
 
@@ -151,20 +150,21 @@ http://localhost:8080/swagger/index.html
 
 ### Key Endpoints
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/instance/create` | Create WhatsApp instance |
-| `GET` | `/instance/qr` | Get QR code for pairing |
-| `POST` | `/send/text` | Send text message |
-| `POST` | `/send/media` | Send media message |
-| `POST` | `/send/excel` | **Upload Excel/CSV for bulk personalized messaging** |
-| `GET` | `/instance/status` | Get instance status |
+| Method | Endpoint           | Description                                          |
+| ------ | ------------------ | ---------------------------------------------------- |
+| `POST` | `/instance/create` | Create WhatsApp instance                             |
+| `GET`  | `/instance/qr`     | Get QR code for pairing                              |
+| `POST` | `/send/text`       | Send text message                                    |
+| `POST` | `/send/media`      | Send media message                                   |
+| `POST` | `/send/excel`      | **Upload Excel/CSV for bulk personalized messaging** |
+| `GET`  | `/instance/status` | Get instance status                                  |
 
 ### Bulk Excel Messaging Endpoint (`POST /send/excel`)
 
 Upload an Excel (`.xlsx`, `.xls`) or CSV (`.csv`) file with `Name` and `Number` columns to send personalized bulk messages.
 
 **Example cURL:**
+
 ```bash
 curl -X POST http://localhost:4000/send/excel \
   -H "apikey: a1b2c3d4e5f6" \
@@ -172,6 +172,7 @@ curl -X POST http://localhost:4000/send/excel \
   -F "text=Hello {{Name}}, welcome to Evolution API!" \
   -F "delay=2000"
 ```
+
 | `DELETE` | `/instance/{name}` | Delete instance |
 
 ---
@@ -201,31 +202,31 @@ evolution-go/
 
 ## Tech Stack
 
-| Component | Technology |
-|---|---|
-| Language | Go 1.24+ |
-| HTTP framework | Gin |
-| WhatsApp | [whatsmeow](https://github.com/tulir/whatsmeow) |
-| Database | PostgreSQL |
-| ORM | GORM |
-| Message queue | RabbitMQ, NATS |
-| Object storage | MinIO/S3 |
-| Documentation | Swagger/OpenAPI |
-| Container | Docker |
+| Component      | Technology                                      |
+| -------------- | ----------------------------------------------- |
+| Language       | Go 1.24+                                        |
+| HTTP framework | Gin                                             |
+| WhatsApp       | [whatsmeow](https://github.com/tulir/whatsmeow) |
+| Database       | PostgreSQL                                      |
+| ORM            | GORM                                            |
+| Message queue  | RabbitMQ, NATS                                  |
+| Object storage | MinIO/S3                                        |
+| Documentation  | Swagger/OpenAPI                                 |
+| Container      | Docker                                          |
 
 ---
 
 ## Documentation
 
-| Resource | Link |
-|---|---|
-| Website | [evolutionfoundation.com.br](https://evolutionfoundation.com.br) |
-| Documentation | [docs.evolutionfoundation.com.br](https://docs.evolutionfoundation.com.br) |
-| Community | [evolutionfoundation.com.br/community](https://evolutionfoundation.com.br/community) |
-| Docker Hub | [evoapicloud/evolution-go](https://hub.docker.com/r/evoapicloud/evolution-go) |
-| Changelog | [CHANGELOG.md](./CHANGELOG.md) |
-| Contributing | [CONTRIBUTING.md](./CONTRIBUTING.md) |
-| Security | [SECURITY.md](./SECURITY.md) |
+| Resource      | Link                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------ |
+| Website       | [evolutionfoundation.com.br](https://evolutionfoundation.com.br)                     |
+| Documentation | [docs.evolutionfoundation.com.br](https://docs.evolutionfoundation.com.br)           |
+| Community     | [evolutionfoundation.com.br/community](https://evolutionfoundation.com.br/community) |
+| Docker Hub    | [evoapicloud/evolution-go](https://hub.docker.com/r/evoapicloud/evolution-go)        |
+| Changelog     | [CHANGELOG.md](./CHANGELOG.md)                                                       |
+| Contributing  | [CONTRIBUTING.md](./CONTRIBUTING.md)                                                 |
+| Security      | [SECURITY.md](./SECURITY.md)                                                         |
 
 ---
 
@@ -281,3 +282,13 @@ Third-party attributions are documented in [NOTICE](./NOTICE).
 <p align="center">
   Made by <a href="https://evolutionfoundation.com.br">Evolution Foundation</a> · © 2026
 </p>
+
+# For Frontend Developers:
+
+# API Tester url
+
+http://localhost:4000/manager/api-tester
+
+# Swagger url
+
+http://localhost:4000/swagger/index.html

@@ -35516,7 +35516,7 @@ function Jz({ open: t, onOpenChange: n }) {
                     ? m.jsxs(m.Fragment, {
                         children: [
                           m.jsx(ol, { className: "mr-2 h-4 w-4 animate-spin" }),
-                          "Criando...",
+                          "Creating...",
                         ],
                       })
                     : m.jsxs(m.Fragment, {
@@ -35552,7 +35552,7 @@ function eL({ instance: t, open: n, onOpenChange: r, onRefresh: s }) {
     if (s) {
       c(!0);
       try {
-        (await s(), Fe.success("QR Code atualizado!"));
+        (await s(), Fe.success("QR Code Updated!"));
       } catch (S) {
         (console.error("Error refreshing QR Code:", S),
           Fe.error("Error refreshing QR Code"));

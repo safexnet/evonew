@@ -19,9 +19,10 @@ type BulkSendRowResult struct {
 
 // BulkSendSummary represents the complete report returned after processing all rows in the spreadsheet
 type BulkSendSummary struct {
-	Status  string              `json:"status"`
-	Total   int                 `json:"total"`
-	Sent    int                 `json:"sent"`
-	Failed  int                 `json:"failed"`
-	Results []BulkSendRowResult `json:"results"`
+	CampaignID string              `json:"campaignId,omitempty"`
+	Status     string              `json:"status"`
+	Total      int                 `json:"total"`
+	Sent       int                 `json:"sent"`
+	Failed     int                 `json:"failed"`
+	Results    []BulkSendRowResult `json:"results"`
 }

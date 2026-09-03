@@ -8,6 +8,7 @@ import (
 	_ "github.com/evolution-foundation/evolution-go/docs"
 	account_handler "github.com/evolution-foundation/evolution-go/pkg/account/handler"
 	call_handler "github.com/evolution-foundation/evolution-go/pkg/call/handler"
+	campaign_handler "github.com/evolution-foundation/evolution-go/pkg/campaign/handler"
 	chat_handler "github.com/evolution-foundation/evolution-go/pkg/chat/handler"
 	community_handler "github.com/evolution-foundation/evolution-go/pkg/community/handler"
 	group_handler "github.com/evolution-foundation/evolution-go/pkg/group/handler"
@@ -27,6 +28,7 @@ type Routes struct {
 	jidValidationMiddleware *auth_middleware.JIDValidationMiddleware
 	instanceHandler         instance_handler.InstanceHandler
 	accountHandler          account_handler.AccountHandler
+	campaignHandler         campaign_handler.CampaignHandler
 	userHandler             user_handler.UserHandler
 	sendHandler             send_handler.SendHandler
 	messageHandler          message_handler.MessageHandler
@@ -93,6 +95,14 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 	{
 		authenticatedAccountRoutes.Use(r.authMiddleware.Auth)
 		authenticatedAccountRoutes.GET("/me", r.accountHandler.Me)
+	}
+
+	campaignRoutes := eng.Group("/campaign")
+	{
+		campaignRoutes.Use(r.authMiddleware.Auth)
+		campaignRoutes.GET("/dashboard", r.campaignHandler.GetDashboardStats)
+		campaignRoutes.GET("/customers", r.campaignHandler.GetCustomers)
+		campaignRoutes.GET("/list", r.campaignHandler.GetCampaigns)
 	}
 
 	routes := eng.Group("/instance")
@@ -270,6 +280,7 @@ func NewRouter(
 	authMiddleware auth_middleware.Middleware,
 	instanceHandler instance_handler.InstanceHandler,
 	accountHandler account_handler.AccountHandler,
+	campaignHandler campaign_handler.CampaignHandler,
 	userHandler user_handler.UserHandler,
 	sendHandler send_handler.SendHandler,
 	messageHandler message_handler.MessageHandler,
@@ -287,6 +298,7 @@ func NewRouter(
 		jidValidationMiddleware: auth_middleware.NewJIDValidationMiddleware(),
 		instanceHandler:         instanceHandler,
 		accountHandler:          accountHandler,
+		campaignHandler:         campaignHandler,
 		userHandler:             userHandler,
 		sendHandler:             sendHandler,
 		messageHandler:          messageHandler,

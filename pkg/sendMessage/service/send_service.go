@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	campaign_model "github.com/evolution-foundation/evolution-go/pkg/campaign/model"
+	campaign_repository "github.com/evolution-foundation/evolution-go/pkg/campaign/repository"
 	config "github.com/evolution-foundation/evolution-go/pkg/config"
 	instance_model "github.com/evolution-foundation/evolution-go/pkg/instance/model"
 	logger_wrapper "github.com/evolution-foundation/evolution-go/pkg/logger"
@@ -61,6 +63,7 @@ type sendService struct {
 	whatsmeowService whatsmeow_service.WhatsmeowService
 	config           *config.Config
 	loggerWrapper    *logger_wrapper.LoggerManager
+	campaignRepo     campaign_repository.CampaignRepository
 }
 
 type SendDataStruct struct {
@@ -3369,12 +3372,14 @@ func NewSendService(
 	whatsmeowService whatsmeow_service.WhatsmeowService,
 	config *config.Config,
 	loggerWrapper *logger_wrapper.LoggerManager,
+	campaignRepo campaign_repository.CampaignRepository,
 ) SendService {
 	return &sendService{
 		clientPointer:    clientPointer,
 		whatsmeowService: whatsmeowService,
 		config:           config,
 		loggerWrapper:    loggerWrapper,
+		campaignRepo:     campaignRepo,
 	}
 }
 
@@ -3496,6 +3501,18 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 		Results: []send_model.BulkSendRowResult{},
 	}
 
+	campaign := &campaign_model.Campaign{
+		Name:       fileName,
+		InstanceID: instance.Id,
+		Total:      0,
+		Sent:       0,
+		Failed:     0,
+	}
+	if s.campaignRepo != nil {
+		_ = s.campaignRepo.CreateCampaign(campaign)
+		summary.CampaignID = campaign.ID
+	}
+
 	for rowIdx := 1; rowIdx < len(rows); rowIdx++ {
 		row := rows[rowIdx]
 		if len(row) <= numberColIdx {
@@ -3513,10 +3530,8 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 				Row:    rowIdx + 1,
 				Number: rawNumber,
 				Status: "failed",
-				Error:  "invalid phone number",
+				Error:  "invalid phone number (too short)",
 			})
-			summary.Failed++
-			summary.Total++
 			continue
 		}
 
@@ -3538,6 +3553,7 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 		}
 
 		var sendErr error
+		var sentMsg *MessageSendStruct
 		if hasMediaFile {
 			mediaData := &MediaStruct{
 				Number:   cleanNumber,
@@ -3545,7 +3561,7 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 				Caption:  formattedMessage,
 				Filename: mediaFileName,
 			}
-			_, sendErr = s.SendMediaFile(mediaData, mediaBytes, instance)
+			sentMsg, sendErr = s.SendMediaFile(mediaData, mediaBytes, instance)
 		} else {
 			detectedUrl := findURL(formattedMessage)
 			if detectedUrl != "" {
@@ -3554,14 +3570,14 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 					Text:   formattedMessage,
 					Url:    detectedUrl,
 				}
-				_, sendErr = s.SendLink(linkData, instance)
+				sentMsg, sendErr = s.SendLink(linkData, instance)
 				if sendErr != nil {
 					textData := &TextStruct{
 						Number: cleanNumber,
 						Text:   formattedMessage,
 						Delay:  0,
 					}
-					_, sendErr = s.SendText(textData, instance)
+					sentMsg, sendErr = s.SendText(textData, instance)
 				}
 			} else {
 				textData := &TextStruct{
@@ -3569,13 +3585,25 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 					Text:   formattedMessage,
 					Delay:  0,
 				}
-				_, sendErr = s.SendText(textData, instance)
+				sentMsg, sendErr = s.SendText(textData, instance)
 			}
 		}
 
+		msgID := ""
+		if sentMsg != nil && sentMsg.Info.ID != "" {
+			msgID = sentMsg.Info.ID
+		}
+
 		summary.Total++
+		campaign.Total++
+
+		status := "sent"
+		errMsg := ""
 		if sendErr != nil {
+			status = "failed"
+			errMsg = sendErr.Error()
 			summary.Failed++
+			campaign.Failed++
 			summary.Results = append(summary.Results, send_model.BulkSendRowResult{
 				Row:    rowIdx + 1,
 				Number: cleanNumber,
@@ -3585,11 +3613,27 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 			})
 		} else {
 			summary.Sent++
+			campaign.Sent++
 			summary.Results = append(summary.Results, send_model.BulkSendRowResult{
 				Row:    rowIdx + 1,
 				Number: cleanNumber,
 				Name:   nameVal,
 				Status: "sent",
+			})
+		}
+
+		if s.campaignRepo != nil {
+			_ = s.campaignRepo.CreateCustomer(&campaign_model.CampaignCustomer{
+				CampaignID:    campaign.ID,
+				CampaignName:  fileName,
+				InstanceID:    instance.Id,
+				Name:          nameVal,
+				Number:        cleanNumber,
+				MessageID:     msgID,
+				MessageText:   formattedMessage,
+				MessageStatus: status,
+				ErrorMessage:  errMsg,
+				SentAt:        time.Now(),
 			})
 		}
 
@@ -3601,6 +3645,10 @@ func (s *sendService) SendBulkExcel(fileData []byte, fileName string, templateTe
 				time.Sleep(time.Duration(delay) * time.Millisecond)
 			}
 		}
+	}
+
+	if s.campaignRepo != nil {
+		_ = s.campaignRepo.UpdateCampaign(campaign)
 	}
 
 	return summary, nil

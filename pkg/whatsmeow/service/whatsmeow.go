@@ -35,6 +35,7 @@ import (
 	waLog "go.mau.fi/whatsmeow/util/log"
 
 	"github.com/evolution-foundation/evolution-go/pkg/config"
+	campaign_repository "github.com/evolution-foundation/evolution-go/pkg/campaign/repository"
 	producer_interfaces "github.com/evolution-foundation/evolution-go/pkg/events/interfaces"
 	instance_model "github.com/evolution-foundation/evolution-go/pkg/instance/model"
 	instance_repository "github.com/evolution-foundation/evolution-go/pkg/instance/repository"
@@ -62,6 +63,8 @@ type WhatsmeowService interface {
 	UpdateInstanceSettings(instanceId string) error
 	UpdateInstanceAdvancedSettings(instanceId string) error
 	GetPollService() poll_service.PollService // NOVO: Acesso ao serviço de polls
+	SetCampaignRepository(campaignRepo campaign_repository.CampaignRepository)
+	GetCampaignRepository() campaign_repository.CampaignRepository
 
 	// Passkey (WebAuthn) pairing bridge — read by the public ceremony endpoint,
 	// written by the whatsmeow event goroutine.
@@ -81,6 +84,7 @@ type whatsmeowService struct {
 	authDB             *sql.DB
 	messageRepository  message_repository.MessageRepository
 	labelRepository    label_repository.LabelRepository
+	campaignRepo       campaign_repository.CampaignRepository
 	pollService        poll_service.PollService // NOVO: Serviço de enquetes
 	config             *config.Config
 	killChannel        map[string](chan bool)
@@ -1234,6 +1238,41 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 					mycli.loggerWrapper.GetLogger(mycli.userID).LogInfo("[%s] Auto-marked message as read from %s", mycli.userID, evt.Info.Chat.String())
 				}
 			}()
+		}
+
+		// Record Campaign Customer Reply / Reaction in real-time
+		if !evt.Info.IsFromMe && mycli.service != nil && mycli.service.GetCampaignRepository() != nil {
+			cRepo := mycli.service.GetCampaignRepository()
+			senderNumber := evt.Info.Sender.User
+			if senderNumber == "" {
+				senderNumber = evt.Info.Chat.User
+			}
+
+			if evt.Message.GetReactionMessage() != nil {
+				targetMsgID := ""
+				if evt.Message.GetReactionMessage().GetKey() != nil {
+					targetMsgID = evt.Message.GetReactionMessage().GetKey().GetID()
+				}
+				emoji := evt.Message.GetReactionMessage().GetText()
+				if emoji != "" && targetMsgID != "" {
+					go func(instID, msgID, em string) {
+						_ = cRepo.RecordCustomerReaction(instID, msgID, em)
+					}(mycli.userID, targetMsgID, emoji)
+				}
+			} else {
+				text := ""
+				if evt.Message.GetConversation() != "" {
+					text = evt.Message.GetConversation()
+				} else if evt.Message.GetExtendedTextMessage() != nil {
+					text = evt.Message.GetExtendedTextMessage().GetText()
+				}
+
+				if text != "" {
+					go func(instID, num, t string) {
+						_ = cRepo.RecordCustomerReply(instID, num, t)
+					}(mycli.userID, senderNumber, text)
+				}
+			}
 		}
 
 		parsedMessageType := utils.GetMessageType(evt.Message)
@@ -2837,6 +2876,14 @@ func NewWhatsmeowService(
 // GetPollService retorna o serviço de polls (evita dupla inicialização)
 func (w *whatsmeowService) GetPollService() poll_service.PollService {
 	return w.pollService
+}
+
+func (w *whatsmeowService) SetCampaignRepository(campaignRepo campaign_repository.CampaignRepository) {
+	w.campaignRepo = campaignRepo
+}
+
+func (w *whatsmeowService) GetCampaignRepository() campaign_repository.CampaignRepository {
+	return w.campaignRepo
 }
 
 // PasskeyCeremonyStore exposes the shared ceremony store so the public HTTP

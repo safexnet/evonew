@@ -32,6 +32,10 @@ import (
 	account_model "github.com/evolution-foundation/evolution-go/pkg/account/model"
 	account_repository "github.com/evolution-foundation/evolution-go/pkg/account/repository"
 	account_service "github.com/evolution-foundation/evolution-go/pkg/account/service"
+	campaign_handler "github.com/evolution-foundation/evolution-go/pkg/campaign/handler"
+	campaign_model "github.com/evolution-foundation/evolution-go/pkg/campaign/model"
+	campaign_repository "github.com/evolution-foundation/evolution-go/pkg/campaign/repository"
+	campaign_service "github.com/evolution-foundation/evolution-go/pkg/campaign/service"
 	"github.com/evolution-foundation/evolution-go/pkg/core"
 	producer_interfaces "github.com/evolution-foundation/evolution-go/pkg/events/interfaces"
 	nats_producer "github.com/evolution-foundation/evolution-go/pkg/events/nats"
@@ -195,7 +199,13 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 	accountService := account_service.NewAccountService(accountRepository, loggerWrapper)
 	accountHandler := account_handler.NewAccountHandler(accountService)
 
-	sendMessageService := send_service.NewSendService(clientPointer, whatsmeowService, config, loggerWrapper)
+	campaignRepository := campaign_repository.NewCampaignRepository(db)
+	campaignService := campaign_service.NewCampaignService(campaignRepository, loggerWrapper)
+	campaignHandler := campaign_handler.NewCampaignHandler(campaignService)
+
+	whatsmeowService.SetCampaignRepository(campaignRepository)
+
+	sendMessageService := send_service.NewSendService(clientPointer, whatsmeowService, config, loggerWrapper, campaignRepository)
 	userService := user_service.NewUserService(clientPointer, whatsmeowService, loggerWrapper)
 	messageService := message_service.NewMessageService(clientPointer, messageRepository, whatsmeowService, loggerWrapper)
 	chatService := chat_service.NewChatService(clientPointer, whatsmeowService, loggerWrapper)
@@ -237,6 +247,7 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 		auth_middleware.NewMiddleware(config, instanceService, accountService),
 		instance_handler.NewInstanceHandler(instanceService, config),
 		accountHandler,
+		campaignHandler,
 		user_handler.NewUserHandler(userService),
 		send_handler.NewSendHandler(sendMessageService),
 		message_handler.NewMessageHandler(messageService),
@@ -271,7 +282,14 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 }
 
 func migrate(db *gorm.DB) {
-	err := db.AutoMigrate(&instance_model.Instance{}, &message_model.Message{}, &label_model.Label{}, &account_model.Account{})
+	err := db.AutoMigrate(
+		&instance_model.Instance{},
+		&message_model.Message{},
+		&label_model.Label{},
+		&account_model.Account{},
+		&campaign_model.Campaign{},
+		&campaign_model.CampaignCustomer{},
+	)
 
 	if err != nil {
 		log.Fatal(err)

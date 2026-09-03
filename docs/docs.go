@@ -18,6 +18,78 @@ const docTemplate = `{
     "host": "localhost:4000",
     "basePath": "/",
     "paths": {
+        "/campaign/dashboard": {
+            "get": {
+                "description": "Get overall metrics for frontend dashboard cards (total users, sent, failed, replies, reactions, response rate)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Campaign"
+                ],
+                "summary": "Get Campaign Dashboard Statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Optional WhatsApp Instance ID filter",
+                        "name": "instanceId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Dashboard metrics" },
+                    "500": { "description": "Server error" }
+                }
+            }
+        },
+        "/campaign/customers": {
+            "get": {
+                "description": "Get paginated, searchable customer table list with reply, reaction, and delivery status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Campaign"
+                ],
+                "summary": "Get Customer Table List for Dashboard",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by customer name or phone number",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter status: sent, failed, replied, reacted, responded",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional WhatsApp Instance ID filter",
+                        "name": "instanceId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Customer list" },
+                    "500": { "description": "Server error" }
+                }
+            }
+        },
         "/account/register": {
             "post": {
                 "description": "Register a new user account, save to DB, generate an API key, and send it via email",
